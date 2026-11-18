@@ -73,14 +73,21 @@ def run_grid(market: pd.DataFrame, fits: dict, cfg: sim.SimConfig, settings=SETT
     return pd.concat(frames, ignore_index=True)
 
 
-def tw_cube(grid: pd.DataFrame, setting: str, letf: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Terminal wealth percentiles as array [horizon, w, percentile]."""
+def percentile_cube(
+    grid: pd.DataFrame, setting: str, letf: int, metric: str = "tw"
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Percentiles of ``metric`` (tw, mdd, uw) as array [horizon, w, percentile]."""
     g = grid[(grid.setting == setting) & (grid.letf == letf)].sort_values(["horizon", "w"])
     weights = np.sort(g.w.unique())
     horizons = np.sort(g.horizon.unique())
-    cols = [f"tw_p{p:02d}" for p in PERCENTILES]
+    cols = [f"{metric}_p{p:02d}" for p in PERCENTILES]
     cube = g[cols].to_numpy().reshape(len(horizons), len(weights), len(PERCENTILES))
     return cube, weights, horizons
+
+
+def tw_cube(grid: pd.DataFrame, setting: str, letf: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Terminal wealth percentiles as array [horizon, w, percentile]."""
+    return percentile_cube(grid, setting, letf, "tw")
 
 
 def crossovers(mix: np.ndarray, base: np.ndarray) -> list[float]:
@@ -120,27 +127,36 @@ def derive(grid: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def chart_json(grid: pd.DataFrame, setting: str) -> dict:
-    """Compact export for the chart: log terminal wealth in thousandths, [horizon][w][percentile]."""
+    """Chart export for one setting, at full precision.
+
+    Percentile arrays are [horizon][w][percentile]; scalar arrays are [horizon][w].
+    """
     out = {"setting": setting, "percentiles": PERCENTILES.tolist(), "letf": {}}
     for letf in (2, 3):
         cube, weights, horizons = tw_cube(grid, setting, letf)
         g = grid[(grid.setting == setting) & (grid.letf == letf)].sort_values(["horizon", "w"])
         shape = (len(horizons), len(weights))
-        out["weights"] = weights.round(2).tolist()
+
+        def scalar(col, g=g, shape=shape):
+            return g[col].to_numpy().reshape(shape).tolist()
+
+        out["weights"] = weights.tolist()
         out["horizons"] = horizons.tolist()
-        # w* and crossovers come from the exact percentiles; the rounded wealth is for drawing only.
         best = np.argmax(cube, axis=1)
         out["letf"][str(letf)] = {
-            "log_tw_milli": np.round(1000 * np.log(cube)).astype(int).tolist(),
-            "w_star": weights[best].round(2).tolist(),
+            "terminal_wealth": cube.tolist(),
+            "max_drawdown": percentile_cube(grid, setting, letf, "mdd")[0].tolist(),
+            "underwater_years": percentile_cube(grid, setting, letf, "uw")[0].tolist(),
+            "w_star": weights[best].tolist(),
             "crossovers": [
-                [[round(x, 2) for x in crossovers(cube[hi, wi], cube[hi, 0])] for wi in range(len(weights))]
+                [crossovers(cube[hi, wi], cube[hi, 0]) for wi in range(len(weights))]
                 for hi in range(len(horizons))
             ],
-            "p_below_base": np.round(g.p_below_base.to_numpy().reshape(shape), 4).tolist(),
-            "p_below_start": np.round(g.p_below_start.to_numpy().reshape(shape), 4).tolist(),
-            "mean_log": np.round(g.mean_log.to_numpy().reshape(shape), 5).tolist(),
-            "p_letf_ruin": np.round(g.p_letf_ruin.to_numpy().reshape(shape)[:, 0], 4).tolist(),
+            "mean_wealth": scalar("mean"),
+            "mean_log": scalar("mean_log"),
+            "p_below_base": scalar("p_below_base"),
+            "p_below_start": scalar("p_below_start"),
+            "p_letf_ruin": g.p_letf_ruin.to_numpy().reshape(shape)[:, 0].tolist(),
         }
     return out
 
