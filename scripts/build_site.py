@@ -8,7 +8,7 @@ import shutil
 
 import pandas as pd
 
-from letf import summary
+from letf import costs, method, sources, summary
 from letf.data import build_market
 from letf.paths import PROCESSED, RESULTS, ROOT
 from letf.sim import SimConfig
@@ -24,15 +24,30 @@ def main() -> None:
     for path in charts:
         shutil.copyfile(path, SITE_DATA / path.name)
 
-    _, checks = build_market()
+    market, checks = build_market()
+    fits = json.loads((PROCESSED / "costs.json").read_text())
+    params = costs.letf_params(fits)
+    dff = sources.fred("DFF")
+    figures = method.method_figures(
+        market=market,
+        funds=pd.read_parquet(PROCESSED / "funds.parquet"),
+        letf=pd.read_parquet(PROCESSED / "letf.parquet"),
+        fits=fits,
+        params=params,
+        dff=dff,
+    )
+    (SITE_DATA / "method.json").write_text(json.dumps(figures, separators=(",", ":")))
     numbers = summary.article_numbers(
         grid=pd.read_parquet(RESULTS / "grid.parquet"),
         w_star=pd.read_parquet(RESULTS / "w_star.parquet"),
         crossovers=pd.read_parquet(RESULTS / "crossovers.parquet"),
-        costs=json.loads((PROCESSED / "costs.json").read_text()),
+        costs=fits,
         checks=checks,
         n_paths=SimConfig().n_paths,
     )
+    numbers |= method.letf_borrowing_numbers(params, float(dff.iloc[-1]))
+    numbers |= method.history_numbers(market, pd.read_parquet(PROCESSED / "letf.parquet"), figures)
+    numbers["fed_funds_date"] = str(dff.index[-1].date())
     (SITE_DATA / "summary.json").write_text(json.dumps(numbers, indent=1))
     print(f"copied {len(charts)} chart files, wrote {len(numbers)} summary numbers to {SITE_DATA}")
 

@@ -1,4 +1,5 @@
 import { distributionView, heatmapView, METRICS, ordinal, outcomeIndex, shareView } from "./charts.js";
+import * as figs from "./figures.js";
 
 const SETTINGS = {
   main: { label: "Main: annual rebalancing, 1-year blocks, fitted spread", file: "chart.json" },
@@ -27,6 +28,8 @@ const years = (n) => `${n} ${n === 1 ? "year" : "years"}`;
 const FORMATS = {
   pct: (v) => pct(v),
   pct1: (v) => pct(v, 1),
+  pct2: (v) => pct(v, 2),
+  pctabs: (v) => pct(Math.abs(v)),
   pctsigned: (v) => `${v >= 0 ? "+" : "−"}${pct(Math.abs(v))}`,
   pctsigned1: (v) => `${v >= 0 ? "+" : "−"}${pct(Math.abs(v), 1)}`,
   xplain: (v) => `${v.toFixed(1)}×`,
@@ -94,6 +97,7 @@ function tokens() {
     axis: get("--axis"),
     series1: get("--series-1"),
     series2: get("--series-2"),
+    series3: get("--series-3"),
     seq: get("--seq").split(",").map((s) => s.trim()),
   };
 }
@@ -338,16 +342,137 @@ function describeHeatmap() {
   );
 }
 
+// ---------- method figures ----------
+
+let method = null;
+
+function legend(container, items) {
+  container.replaceChildren(
+    ...items.map(([color, name]) => {
+      const span = document.createElement("span");
+      const key = document.createElement("span");
+      key.className = "key";
+      key.style.background = color;
+      span.append(key, document.createTextNode(name));
+      return span;
+    }),
+  );
+}
+
+const mult = METRICS.terminal_wealth.fmt;
+
+function renderFigures() {
+  if (!method) return;
+  const t = tokens();
+  const panelWidth = (fig, i = 0) => fig.querySelector(`[data-panel="${i}"]`)?.clientWidth || fig.clientWidth;
+
+  // Cost fit
+  let fig = $("#fig-costfit");
+  method.tracking.forEach((f, i) => {
+    fig.querySelector(`[data-panel="${i}"]`).replaceChildren(figs.costFit(f, panelWidth(fig, i), t));
+  });
+  fillTable(
+    fig.querySelector(".scroll"),
+    ["Fund", "Leverage", "Rate multiple (fitted)", "Spread (% a year)", "Months"],
+    method.tracking.map((f) => [f.ticker, `${f.leverage}x`, f.fit_k.toFixed(2), f.fit_s.toFixed(2), String(f.month.length)]),
+  );
+
+  // Model check
+  fig = $("#fig-check");
+  legend(fig.querySelector(".legend"), [
+    [t.series1, "Real fund"],
+    [t.series2, "Model"],
+  ]);
+  method.actual_vs_rebuilt.forEach((f, i) => {
+    fig.querySelector(`[data-panel="${i}"]`).replaceChildren(figs.actualVsRebuilt(f, panelWidth(fig, i), t));
+  });
+  fillTable(
+    fig.querySelector(".scroll"),
+    ["Fund", "From", "Real fund, growth of 1", "Model, growth of 1", "Out-of-sample tracking difference"],
+    method.actual_vs_rebuilt.map((f) => [
+      f.ticker,
+      f.month[0].slice(0, 7),
+      mult(f.actual.at(-1)),
+      mult(f.rebuilt.at(-1)),
+      `${(100 * f.oos_tracking_diff).toFixed(2)} pp/yr`,
+    ]),
+  );
+
+  // History
+  fig = $("#fig-history");
+  legend(fig.querySelector(".legend"), [
+    [t.series2, "S&P 500"],
+    [t.series3, "Rebuilt 2x"],
+    [t.series1, "Rebuilt 3x"],
+  ]);
+  fig.querySelector('[data-panel="0"]').replaceChildren(figs.history(method.history, panelWidth(fig, 0), t));
+  fig.querySelector('[data-panel="1"]').replaceChildren(figs.fedFunds(method.history, panelWidth(fig, 1), t));
+  const h = method.history;
+  const decades = h.month.map((m, i) => [m, i]).filter(([m]) => m.endsWith("12-31") && Number(m.slice(0, 4)) % 5 === 0);
+  fillTable(
+    fig.querySelector(".scroll"),
+    ["End of year", "S&P 500", "Rebuilt 2x", "Rebuilt 3x", "Fed funds"],
+    decades.map(([m, i]) => [m.slice(0, 4), mult(h.sp500[i]), mult(h.letf2[i]), mult(h.letf3[i]), `${h.fed_funds[i].toFixed(2)}%`]),
+  );
+
+  // Borrowing
+  fig = $("#fig-borrow");
+  fig.querySelector(".plot").replaceChildren(figs.borrowing(method.borrowing, fig.querySelector(".plot").clientWidth, t));
+  fillTable(
+    fig.querySelector(".scroll"),
+    ["Route", "Cost (% a year)", "Basis"],
+    method.borrowing.rows.map((r) => [
+      r.name,
+      r.low === r.high ? r.low.toFixed(1) : `${r.low.toFixed(1)}–${r.high.toFixed(1)}`,
+      r.note,
+    ]),
+  );
+
+  // Fan (always the main setting)
+  load("main").then((data) => {
+    const f = $("#fig-fan");
+    legend(f.querySelector(".legend"), [
+      [t.series2, "100% S&P 500"],
+      [t.series1, "10% 3x + 90% S&P 500"],
+    ]);
+    f.querySelector(".plot").replaceChildren(figs.fan(data, 0.1, f.querySelector(".plot").clientWidth, t));
+    const j = data.weights.findIndex((w) => Math.abs(w - 0.1) < 1e-9);
+    const L = data.letf["3"].terminal_wealth;
+    fillTable(
+      f.querySelector(".scroll"),
+      ["Horizon", "Index 10th", "Index median", "Index 90th", "10% 3x 10th", "10% 3x median", "10% 3x 90th"],
+      [5, 10, 20, 30, 40, 50].map((hz) => [
+        `${hz} yr`,
+        ...[0, j].flatMap((w) => [9, 49, 89].map((p) => mult(L[hz - 1][w][p]))),
+      ]),
+    );
+  });
+}
+
+async function loadMethod() {
+  const res = await fetch("data/method.json");
+  if (!res.ok) throw new Error(`method.json: HTTP ${res.status}`);
+  method = await res.json();
+  renderFigures();
+}
+
 let resizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(render, 150);
+  resizeTimer = setTimeout(() => {
+    render();
+    renderFigures();
+  }, 150);
 });
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  render();
+  renderFigures();
+});
 
 wireControls();
 wireHeatmapKeys();
 bindNumbers().catch((err) => console.error(err));
+loadMethod().catch((err) => console.error(err));
 selectSetting("main");
 
 // Exposed for automated checks.

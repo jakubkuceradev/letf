@@ -14,131 +14,174 @@
 <body>
 <main class="article">
   <h1>Do leveraged ETFs belong in a long-term portfolio?</h1>
-  <p class="dek">We rebuilt daily 2x and 3x S&amp;P 500 funds back to 1957 and simulated thousands of
-    lump-sum portfolios. Over decades, a small slice of a 3x fund barely touches the bad outcomes and
-    lifts the typical one. The price is a much rougher ride.</p>
+  <p class="dek">We modelled daily 2x and 3x S&amp;P 500 funds, checked the model against the real
+    funds, rebuilt their returns back to 1957, and simulated thousands of 50-year futures. A little
+    leverage can suit some long-term investors. Whether an LETF is the best way to get it is a separate
+    question.</p>
   <p class="draft-note">Draft. Every number in this text is filled in from the analysis results when the
-    page loads, so it always matches the chart.</p>
+    page loads, so it always matches the figures.</p>
 
-  <h2>The short answer</h2>
-  <p>For most investors, no. For a patient investor with a very long horizon who can sit through deep
-    losses, a small slice may be worth it.</p>
-  <p>Take a 50-year horizon and hold 10% in a 3x fund and 90% in an S&amp;P 500 index fund, for
-    <span class="num pending" data-num="mix_3x_10_h50_exposure" data-fmt="xplain">…</span> market exposure in total.
-    At the <span class="num pending" data-num="cutoff" data-fmt="ord">…</span> percentile, the bad outcome
-    that 90% of simulated paths beat, the portfolio ends with
-    <span class="num pending" data-num="mix_3x_10_h50_p10" data-fmt="x">…</span> its starting real value
-    against <span class="num pending" data-num="base_h50_p10" data-fmt="x">…</span> for the index fund alone,
-    a difference of <span class="num pending" data-num="mix_3x_10_h50_p10_change" data-fmt="pctsigned1">…</span>.
-    At the median it ends with <span class="num pending" data-num="mix_3x_10_h50_p50" data-fmt="x1">…</span>
-    against <span class="num pending" data-num="base_h50_p50" data-fmt="x1">…</span>,
-    <span class="num pending" data-num="mix_3x_10_h50_p50_change" data-fmt="pctsigned">…</span>. On the same
-    simulated path, it ends ahead of the index fund
-    <span class="num pending" data-num="mix_3x_10_h50_beat" data-fmt="pct">…</span> of the time.</p>
-  <p>That advantage comes with a harder ride. The typical worst fall from a peak grows from
-    <span class="num pending" data-num="base_h50_mdd50" data-fmt="pct">…</span> to
-    <span class="num pending" data-num="mix_3x_10_h50_mdd50" data-fmt="pct">…</span>, and in a bad case from
-    <span class="num pending" data-num="base_h50_mdd_bad" data-fmt="pct">…</span> to
-    <span class="num pending" data-num="mix_3x_10_h50_mdd_bad" data-fmt="pct">…</span>. The 3x slice itself
-    loses 90% or more within a single year on
-    <span class="num pending" data-num="ruin_annual_h50_3x" data-fmt="pct">…</span> of 50-year paths. Whether
-    the trade is worth it depends on which outcomes you care about and on how you behave in a crash.</p>
-
-  <h2>Why the 10th percentile, not the 5th</h2>
-  <p>A cautious investor judges a portfolio by its bad outcomes, so a low percentile is the natural
-    yardstick. The 5th percentile of 30- to 50-year outcomes, though, sits deep in the tail. With about
-    <span class="num pending" data-num="sample_years" data-fmt="yearsint">…</span> years of history behind the
-    simulation, it is shaped by a handful of crises reused many times, and small changes in the method move
-    it. The 10th percentile is still a bad outcome but rests on much more of the data. For the record, the
-    5th-percentile answer is simple: the best share in a leveraged fund is zero at
-    <span class="num pending" data-num="p5_zero_horizons_3x" data-fmt="int">…</span> of
-    <span class="num pending" data-num="horizon_count" data-fmt="int">…</span> horizons for 3x and
-    <span class="num pending" data-num="p5_zero_horizons_2x" data-fmt="int">…</span> for 2x.</p>
+  <p>Leveraged ETFs come with a warning label: they are built for short-term trading, and holding them
+    for long periods can produce returns very different from their stated multiple. Yet long backtests of
+    a fund like UPRO, the 3x S&amp;P 500 ETF, look spectacular. Both statements are true, which makes the
+    question worth answering carefully: what happens if a long-term investor holds part of a portfolio in
+    one for decades?</p>
+  <p>The real funds are too young to answer that. The oldest daily S&amp;P 500 leveraged fund still
+    trading dates from 1993. So most of this article is about method: how the funds were modelled, how
+    well the model matches them, what their returns would have looked like since 1957, what their
+    leverage costs, and how the simulation turns one history into many possible futures. The results and
+    a short answer are at the end.</p>
 
   <h2>What a daily leveraged ETF does</h2>
   <p>A 3x S&amp;P 500 fund aims to return three times the index's return every day, not over any longer
     period. To do that it holds three dollars of index exposure for every dollar invested, mostly through
-    swaps, and pays to borrow the extra two dollars at an overnight rate plus a spread. It also charges an
-    expense ratio of a little under 1% a year.</p>
+    swaps with banks, and pays to borrow the extra two dollars at an overnight rate plus a spread. It also
+    charges an expense ratio of a little under 1% a year.</p>
   <p>Resetting every day has a cost of its own. After a 10% fall, a 3x fund is down 30% and needs a 43%
     gain to recover, while the index needs only 11%. In choppy markets these losses compound, and over
-    decades they can outweigh the extra return. Whether they do is an empirical question, which is why the
-    funds' long-run behaviour has to be simulated rather than read off a formula.</p>
+    decades they can outweigh the extra return. How much they do depends on the path the market takes,
+    which is why the funds' long-run behaviour has to be simulated rather than read off a formula.</p>
 
-  <h2>Rebuilding leveraged returns back to 1957</h2>
-  <p>The oldest daily S&amp;P 500 leveraged funds date from the 1990s, which is too short to say much
-    about 50-year outcomes. So we modelled the funds' costs and used the model to rebuild their returns
-    back to the launch of the S&amp;P 500 in March 1957.</p>
-  <p>The model treats a fund's daily return as its leverage times the index's total return, minus
-    financing on the borrowed part at the federal funds rate, minus its expense ratio and a fitted
-    borrowing spread. We fitted it to the
-    <span class="num pending" data-num="funds_count" data-fmt="int">…</span> longest-running daily S&amp;P 500
-    funds (Rydex Nova, ProFunds UltraBull, ProShares SSO and UPRO, Direxion SPXL), using each fund's actual
-    expense ratios from its annual reports. Fitted on the first half of each fund's history, the model
-    predicted the second half within half a percentage point a year for
-    <span class="num pending" data-num="oos_pass_count" data-fmt="int">…</span> of
-    <span class="num pending" data-num="funds_count" data-fmt="int">…</span> funds.</p>
-  <p>For SSO, the 2x fund, the fit matches the theory closely: the financing coefficient is
-    <span class="num pending" data-num="sso_k" data-fmt="dec2">…</span> against a theoretical 1.00, with a
-    borrowing spread of <span class="num pending" data-num="sso_s" data-fmt="pct1">…</span> a year on top of
-    its <span class="num pending" data-num="sso_er" data-fmt="pct1">…</span> expense ratio. For UPRO, the 3x
-    fund, the coefficient is <span class="num pending" data-num="upro_k" data-fmt="dec2">…</span> against
-    2.00, so it pays somewhat more for its borrowing than the federal funds rate alone, plus a spread of
-    <span class="num pending" data-num="upro_s" data-fmt="pct1">…</span>. The rebuilt 2x and 3x series use
-    these two funds' costs.</p>
+  <h2>Modelling what the funds cost</h2>
+  <p>The model describes a fund's daily return as its leverage times the S&amp;P 500's total return,
+    minus three costs: financing on the borrowed part, the expense ratio, and everything else, such as
+    the spread banks charge on the swaps and trading costs inside the fund. The expense ratio is known.
+    We took each fund's actual yearly ratio from its annual reports filed with the SEC. That leaves two
+    numbers to estimate per fund: how much of the federal funds rate it pays per dollar of assets, and a
+    fixed spread.</p>
+  <p>We estimated them from the
+    <span class="num pending" data-num="funds_count" data-fmt="int">…</span> longest-running daily S&amp;P 500 funds: Rydex Nova (1.5x, since 1993),
+    ProFunds UltraBull (2x, 1997), ProShares SSO (2x, 2006) and UPRO (3x, 2009), and Direxion SPXL (3x,
+    tracking the S&amp;P 500 since 2012). Each month, the fund's return beyond its leverage times the
+    index, with the expense ratio added back, is compared with the financing rate it paid that month.</p>
+  <figure class="fig" id="fig-costfit">
+    <figcaption><strong>What the funds pay beyond their fees.</strong> Each dot is one month of a fund's return minus its leverage times the index, with the expense ratio added back, against the federal funds rate. The line is the fitted model. A 2x fund borrows one extra dollar per dollar invested, so its slope should be near −1; a 3x fund borrows two, so its slope should be near −2.</figcaption>
+    <div class="panels"><div class="panel"><h5>SSO (2x)</h5><div class="plot" data-panel="0"></div></div><div class="panel"><h5>UPRO (3x)</h5><div class="plot" data-panel="1"></div></div></div>
+    <details class="table"><summary>Table</summary><div class="scroll"></div></details>
+  </figure>
 
-  <h2>Simulating thousands of futures</h2>
-  <p>History from <span class="num pending" data-num="sample_start" data-fmt="date">…</span> to
-    <span class="num pending" data-num="sample_end" data-fmt="date">…</span> contains only one sequence of
-    markets. To see the range of outcomes, a circular block bootstrap stitches together randomly chosen
-    one-year stretches of that history into
-    <span class="num pending" data-num="paths" data-fmt="int">…</span> new 50-year paths. Each stretch keeps
-    its own index returns, interest rates, and inflation, so a 1981 year always carries 1981 borrowing
-    costs.</p>
+  <p>For SSO, the fit is close to theory: it pays <span class="num pending" data-num="sso_k" data-fmt="dec2">…</span> times the federal funds rate, against
+    a theoretical 1.00, plus a spread of <span class="num pending" data-num="sso_s" data-fmt="pct1">…</span> a year on top of its <span class="num pending" data-num="sso_er" data-fmt="pct1">…</span>
+    expense ratio. UPRO pays <span class="num pending" data-num="upro_k" data-fmt="dec2">…</span> times the rate against a theoretical 2.00, so its
+    borrowing costs a little more than the federal funds rate alone, plus a spread of
+    <span class="num pending" data-num="upro_s" data-fmt="pct1">…</span>. The near-zero rates of 2009 to 2015 are visible on the left of each panel: with
+    money almost free, what remains is the spread and the fund's own costs.</p>
+
+  <h2>Checking the model against the real funds</h2>
+  <p>A model that fits the monthly averages could still drift over years. The check that matters is
+    whether it reproduces each fund's actual growth. Fitted on the first half of each fund's history, the
+    model predicted the second half within half a percentage point a year for
+    <span class="num pending" data-num="oos_pass_count" data-fmt="int">…</span> of <span class="num pending" data-num="funds_count" data-fmt="int">…</span> funds. Over the full history, the rebuilt SSO
+    compounds at <span class="num pending" data-num="check_cagr_rebuilt_sso" data-fmt="pct2">…</span> a year against <span class="num pending" data-num="check_cagr_actual_sso" data-fmt="pct2">…</span> for
+    the real fund since <span class="num pending" data-num="check_start_sso" data-fmt="text">…</span>, and the rebuilt UPRO at
+    <span class="num pending" data-num="check_cagr_rebuilt_upro" data-fmt="pct2">…</span> against <span class="num pending" data-num="check_cagr_actual_upro" data-fmt="pct2">…</span> since
+    <span class="num pending" data-num="check_start_upro" data-fmt="text">…</span>.</p>
+  <figure class="fig" id="fig-check">
+    <figcaption><strong>The model against the real funds.</strong> Growth of 1 invested at each fund's launch, the real fund against the model driven only by the S&amp;P 500, the federal funds rate, and the fund's fees. Log scale, nominal dollars.</figcaption>
+    <div class="legend"></div><div class="panels"><div class="panel"><h5>SSO (2x), since 2006</h5><div class="plot" data-panel="0"></div></div><div class="panel"><h5>UPRO (3x), since 2009</h5><div class="plot" data-panel="1"></div></div></div>
+    <details class="table"><summary>Table</summary><div class="scroll"></div></details>
+  </figure>
+
+
+  <h2>Seventy years of leveraged returns</h2>
+  <p>With the costs pinned down, the model rebuilds daily 2x and 3x returns for every trading day since
+    the S&amp;P 500 launched in March 1957, using SSO's costs for 2x and UPRO's for 3x. Each day uses
+    that day's index return and that day's federal funds rate, so the 1970s and 1980s carry their high
+    borrowing costs.</p>
+  <figure class="fig" id="fig-history">
+    <figcaption><strong>The rebuilt funds since 1957.</strong> Real, inflation-adjusted growth of 1 for the S&amp;P 500 with dividends and the rebuilt 2x and 3x funds held without rebalancing, log scale. The lower panel shows the federal funds rate the funds paid to borrow.</figcaption>
+    <div class="legend"></div><div class="panels"><div class="panel"><h5>Real growth</h5><div class="plot" data-panel="0"></div></div><div class="panel"><h5>Federal funds rate</h5><div class="plot" data-panel="1"></div></div></div>
+    <details class="table"><summary>Table</summary><div class="scroll"></div></details>
+  </figure>
+
+  <p>Three times the exposure did not produce three times the return. In real terms the S&amp;P 500
+    compounded at <span class="num pending" data-num="hist_cagr_sp500" data-fmt="pct1">…</span> a year over the period, the rebuilt 2x fund at
+    <span class="num pending" data-num="hist_cagr_letf2" data-fmt="pct1">…</span>, and the rebuilt 3x fund at only <span class="num pending" data-num="hist_cagr_letf3" data-fmt="pct1">…</span>. The
+    3x fund's worst fall from a peak was <span class="num pending" data-num="hist_mdd_letf3" data-fmt="pct1">…</span>, against
+    <span class="num pending" data-num="hist_mdd_sp500" data-fmt="pct">…</span> for the index; in 2008 alone it lost <span class="num pending" data-num="hist_2008_letf3" data-fmt="pctabs">…</span> of its
+    real value while the index lost <span class="num pending" data-num="hist_2008_sp500" data-fmt="pctabs">…</span>. Held on its own, a 3x fund spends
+    decades recovering from its crashes. Held as a small, rebalanced slice next to an index fund, it
+    behaves very differently, which is what the simulation tests.</p>
+
+  <h2>What LETF leverage costs</h2>
+  <p>The fitted costs also say what an LETF charges for its leverage. Per borrowed dollar, UPRO costs
+    <span class="num pending" data-num="borrow_mult_3x" data-fmt="dec2">…</span> times the federal funds rate plus <span class="num pending" data-num="borrow_extra_3x" data-fmt="pct2">…</span> a year, and
+    SSO <span class="num pending" data-num="borrow_mult_2x" data-fmt="dec2">…</span> times the rate plus <span class="num pending" data-num="borrow_extra_2x" data-fmt="pct2">…</span>, counting the expense
+    ratio and the spread. At the federal funds rate of <span class="num pending" data-num="fed_funds_now" data-fmt="pct2">…</span> on
+    <span class="num pending" data-num="fed_funds_date" data-fmt="date">…</span>, that is about <span class="num pending" data-num="borrow_rate_3x" data-fmt="pct1">…</span> a year for 3x and
+    <span class="num pending" data-num="borrow_rate_2x" data-fmt="pct1">…</span> for 2x.</p>
+  <figure class="fig" id="fig-borrow">
+    <figcaption><strong>What borrowing for stock exposure costs.</strong> Yearly cost per borrowed dollar at today's federal funds rate. The LETF rows come from the fitted model; the others are quoted market and broker rates from 2026 and move with the market.</figcaption>
+    <div class=""><div class="plot"></div></div>
+    <details class="table"><summary>Table and sources</summary><div class="scroll"></div></details>
+  </figure>
+
+  <p>That puts LETFs in the middle. Index futures and SPX box spreads have recently cost about 0.3 to 0.8
+    points over the short-term rate, and the cheapest broker margin about 0.5 to 1.5 points, so an LETF
+    costs roughly half a point to a point more than the cheapest routes. Margin at large retail brokers,
+    at around 10% to 12% for smaller balances, costs about twice as much as an LETF.</p>
+  <p>Price is not the only difference. An LETF cannot lose more than the money in it and never triggers a
+    margin call, it can be held in retirement accounts where margin is not allowed, and it does the
+    rebalancing itself. Futures need large contract sizes and quarterly rolls, box spreads need options
+    approval and careful execution, and margin loans can be called in a crash at the worst moment. The
+    LETF's daily reset is also its weakness: it rebalances whether you want it to or not. For a small
+    investor who wants a little leverage, an LETF is a reasonable route, but not a free one, and not the
+    only one.</p>
+
+  <h2>Turning one history into many futures</h2>
+  <p>History from <span class="num pending" data-num="sample_start" data-fmt="date">…</span> to <span class="num pending" data-num="sample_end" data-fmt="date">…</span> is one sequence of markets. To
+    see the range of possible outcomes, a circular block bootstrap builds new histories by stitching
+    together randomly chosen one-year stretches of the real one, starting on any day and wrapping from the
+    end back to the start. Each stretch keeps its own index returns, interest rates, and inflation
+    together, so a 1981 year always carries 1981 borrowing costs. We built
+    <span class="num pending" data-num="paths" data-fmt="int">…</span> paths of 50 years each.</p>
   <p>Every portfolio starts as a single lump sum split between a 2x or 3x fund and an S&amp;P 500 index
-    fund, and rebalances back to its target once a year. Results are in real dollars, after inflation, and
-    expressed as a multiple of the starting amount.</p>
+    fund costing 0.03% a year, and rebalances back to its target once a year. Results are in real
+    dollars, after inflation, and expressed as a multiple of the starting amount.</p>
+  <figure class="fig" id="fig-fan">
+    <figcaption><strong>How outcomes spread with time.</strong> Real wealth across all simulated paths for 100% S&amp;P 500 and for 10% in a 3x fund with 90% in the index fund. Lines show the median; bands run from the 10th to the 90th percentile. Log scale.</figcaption>
+    <div class="legend"></div><div class=""><div class="plot"></div></div>
+    <details class="table"><summary>Table</summary><div class="scroll"></div></details>
+  </figure>
 
-  <h2>Where leverage starts to pay</h2>
-  <p>At the 10th percentile, leverage barely helps at any horizon. The share in a 3x fund that maximizes
-    10th-percentile wealth is zero at <span class="num pending" data-num="p10_zero_horizons_3x" data-fmt="int">…</span>
-    of <span class="num pending" data-num="horizon_count" data-fmt="int">…</span> horizons and
-    <span class="num pending" data-num="wstar_p10_h50_3x" data-fmt="pct">…</span> at 50 years; for 2x it is zero
-    at <span class="num pending" data-num="p10_zero_horizons_2x" data-fmt="int">…</span>. What changes with the horizon is how little a small slice costs there. For a 10% slice of
-    3x, the point where the mix's outcomes overtake the index fund's falls from about the
-    <span class="num pending" data-num="mix_3x_10_h30_cross" data-fmt="ord">…</span> percentile at 30 years to
-    the <span class="num pending" data-num="mix_3x_10_h40_cross" data-fmt="ord">…</span> at 40 and the
-    <span class="num pending" data-num="mix_3x_10_h50_cross" data-fmt="ord">…</span> at 50. Above that
-    crossover the mix ends ahead; below it the index fund does.</p>
-  <p>Bigger slices buy more upside for more downside. At 50 years, 20% in 3x
-    (<span class="num pending" data-num="mix_3x_20_h50_exposure" data-fmt="xplain">…</span> exposure) changes
-    10th-percentile wealth by <span class="num pending" data-num="mix_3x_20_h50_p10_change" data-fmt="pctsigned1">…</span>
-    and median wealth by <span class="num pending" data-num="mix_3x_20_h50_p50_change" data-fmt="pctsigned">…</span>.
-    The <span class="num pending" data-num="mix_2x_20_h50_exposure" data-fmt="xplain">…</span> exposure of a
-    10% slice of 3x can also be built from 20% in a 2x fund, which does worse on both counts:
-    <span class="num pending" data-num="mix_2x_20_h50_p10_change" data-fmt="pctsigned1">…</span> at the 10th
-    percentile and <span class="num pending" data-num="mix_2x_20_h50_p50_change" data-fmt="pctsigned">…</span>
-    at the median, against <span class="num pending" data-num="mix_3x_10_h50_p10_change" data-fmt="pctsigned1">…</span>
-    and <span class="num pending" data-num="mix_3x_10_h50_p50_change" data-fmt="pctsigned">…</span>.</p>
+
+  <h2>Results</h2>
+  <p>We judge portfolios mainly at the <span class="num pending" data-num="cutoff" data-fmt="ord">…</span> percentile, the bad outcome that 90% of paths
+    beat, and at the median. The 5th percentile is a common yardstick for caution, but at 30 to 50 years it
+    sits deep in the tail and rests on a handful of crises reused many times. Its answer is simple anyway:
+    the best share in a leveraged fund is zero at <span class="num pending" data-num="p5_zero_horizons_3x" data-fmt="int">…</span> of
+    <span class="num pending" data-num="horizon_count" data-fmt="int">…</span> horizons for 3x and <span class="num pending" data-num="p5_zero_horizons_2x" data-fmt="int">…</span> for 2x.</p>
+  <p>At the 10th percentile, leverage barely helps either: the best 3x share is zero at
+    <span class="num pending" data-num="p10_zero_horizons_3x" data-fmt="int">…</span> of <span class="num pending" data-num="horizon_count" data-fmt="int">…</span> horizons and
+    <span class="num pending" data-num="wstar_p10_h50_3x" data-fmt="pct">…</span> at 50 years. What changes with the horizon is how little a small slice
+    costs there. For 10% in 3x, a total exposure of <span class="num pending" data-num="mix_3x_10_h50_exposure" data-fmt="xplain">…</span>, the point where
+    the mix's outcomes overtake the index fund's falls from about the <span class="num pending" data-num="mix_3x_10_h30_cross" data-fmt="ord">…</span>
+    percentile at 30 years to the <span class="num pending" data-num="mix_3x_10_h40_cross" data-fmt="ord">…</span> at 40 and the
+    <span class="num pending" data-num="mix_3x_10_h50_cross" data-fmt="ord">…</span> at 50. At 50 years, this mix changes 10th-percentile wealth by
+    <span class="num pending" data-num="mix_3x_10_h50_p10_change" data-fmt="pctsigned1">…</span> and median wealth by <span class="num pending" data-num="mix_3x_10_h50_p50_change" data-fmt="pctsigned">…</span>, and
+    ends ahead of the index fund on the same path <span class="num pending" data-num="mix_3x_10_h50_beat" data-fmt="pct">…</span> of the time.</p>
+  <p>Bigger slices trade more downside for more upside: 20% in 3x changes 10th-percentile wealth by
+    <span class="num pending" data-num="mix_3x_20_h50_p10_change" data-fmt="pctsigned1">…</span> and median wealth by <span class="num pending" data-num="mix_3x_20_h50_p50_change" data-fmt="pctsigned">…</span>.
+    The <span class="num pending" data-num="mix_2x_20_h50_exposure" data-fmt="xplain">…</span> exposure of a 10% 3x slice can also be built from 20% in a 2x
+    fund, which does worse on both counts: <span class="num pending" data-num="mix_2x_20_h50_p10_change" data-fmt="pctsigned1">…</span> and
+    <span class="num pending" data-num="mix_2x_20_h50_p50_change" data-fmt="pctsigned">…</span>.</p>
 
   <h2>The ride, and the person holding it</h2>
-  <p>The numbers above assume an investor who holds on and rebalances every year without fail. That is
-    the hard part. The longest stretch below a previous peak grows from
-    <span class="num pending" data-num="base_h50_uw50" data-fmt="years">…</span> to
-    <span class="num pending" data-num="mix_3x_10_h50_uw50" data-fmt="years">…</span> for a 10% slice of 3x,
-    and in a bad case from <span class="num pending" data-num="base_h50_uw_bad" data-fmt="years">…</span> to
-    <span class="num pending" data-num="mix_3x_10_h50_uw_bad" data-fmt="years">…</span>. In a year like 2008
-    the 3x slice loses most of its value, and the rebalancing rule then asks you to sell some of your
-    index fund and buy more of the asset that just collapsed.</p>
-  <p>The rule matters. With annual rebalancing, the 3x slice loses 90% or more within a single year on
-    <span class="num pending" data-num="ruin_annual_h50_3x" data-fmt="pct">…</span> of 50-year paths.
-    Rebalancing quarterly brings that down to
-    <span class="num pending" data-num="ruin_quarterly_h50_3x" data-fmt="pct">…</span>. Without rebalancing, the slice falls 90% from its start at some point on
-    <span class="num pending" data-num="ruin_none_h50_3x" data-fmt="pct">…</span>. An investor who sells after
-    such a loss, or stops rebalancing, locks in the damage and misses the recovery that makes the median
-    look good. A leveraged fund is a speculative asset inside a long-term portfolio, and it only pays if it
-    is treated like one: small, rebalanced mechanically, and left alone.</p>
+  <p>These numbers assume an investor who holds on and rebalances every year without fail. That is the
+    hard part. For a 10% slice of 3x over 50 years, the typical worst fall from a peak grows from
+    <span class="num pending" data-num="base_h50_mdd50" data-fmt="pct">…</span> to <span class="num pending" data-num="mix_3x_10_h50_mdd50" data-fmt="pct">…</span>, and in a bad case from
+    <span class="num pending" data-num="base_h50_mdd_bad" data-fmt="pct">…</span> to <span class="num pending" data-num="mix_3x_10_h50_mdd_bad" data-fmt="pct">…</span>. The longest stretch below a previous
+    peak grows from <span class="num pending" data-num="base_h50_uw50" data-fmt="years">…</span> to <span class="num pending" data-num="mix_3x_10_h50_uw50" data-fmt="years">…</span>. The 3x slice itself
+    loses 90% or more within a single year on <span class="num pending" data-num="ruin_annual_h50_3x" data-fmt="pct">…</span> of 50-year paths, and the
+    rebalancing rule then asks you to sell some of your index fund and buy more of the asset that just
+    collapsed. Rebalancing quarterly brings that to <span class="num pending" data-num="ruin_quarterly_h50_3x" data-fmt="pct">…</span>; without
+    rebalancing, the slice falls 90% from its start at some point on <span class="num pending" data-num="ruin_none_h50_3x" data-fmt="pct">…</span>. An
+    investor who sells after such a loss locks in the damage and misses the recovery that makes the median
+    look good.</p>
 
+  <h2>Explore the results yourself</h2>
+  <p>The figure below shows every percentile, horizon, and allocation, for both funds and for each
+    variant of the simulation.</p>
   <section class="figure" aria-labelledby="fig-title">
     <h3 id="fig-title">Pick your own percentile</h3>
     <p class="caption">Choose the outcome you care about and the horizon. The views update together. Real
@@ -167,7 +210,7 @@
         <label for="metric">Measure</label>
         <select id="metric"></select>
       </div>
-      <div class="control">
+      <div class="control span-all">
         <label for="setting">Simulation</label>
         <select id="setting"></select>
       </div>
@@ -200,34 +243,36 @@
   <h2>How robust is this?</h2>
   <p>We reran the simulation with quarterly rebalancing, block lengths from one month to ten years, and
     the borrowing spread at the lowest and highest values seen over any two-year window. Across these
-    <span class="num pending" data-num="variant_count" data-fmt="int">…</span> variants of the rebalanced
-    strategy, the crossover for a 10% slice of 3x at 50 years ranges from the
-    <span class="num pending" data-num="mix_3x_10_h50_cross_min" data-fmt="ord">…</span> to the
-    <span class="num pending" data-num="mix_3x_10_h50_cross_max" data-fmt="ord">…</span> percentile, and the
-    best 10th-percentile share at 50 years is never above
-    <span class="num pending" data-num="sens_p10_h50_max_3x" data-fmt="pct">…</span> for 3x or
-    <span class="num pending" data-num="sens_p10_h50_max_2x" data-fmt="pct">…</span> for 2x. Never
-    rebalancing is a different strategy: the slice grows to dominate the portfolio, and the crossover rises
-    to the <span class="num pending" data-num="mix_3x_10_h50_cross_norebal" data-fmt="ord">…</span>.</p>
+    <span class="num pending" data-num="variant_count" data-fmt="int">…</span> variants of the rebalanced strategy, the crossover for a 10% slice of 3x at
+    50 years ranges from the <span class="num pending" data-num="mix_3x_10_h50_cross_min" data-fmt="ord">…</span> to the <span class="num pending" data-num="mix_3x_10_h50_cross_max" data-fmt="ord">…</span>
+    percentile, and the best 10th-percentile share at 50 years is never above
+    <span class="num pending" data-num="sens_p10_h50_max_3x" data-fmt="pct">…</span> for 3x or <span class="num pending" data-num="sens_p10_h50_max_2x" data-fmt="pct">…</span> for 2x. Never rebalancing is
+    a different strategy: the slice grows to dominate the portfolio, and the crossover rises to the
+    <span class="num pending" data-num="mix_3x_10_h50_cross_norebal" data-fmt="ord">…</span>.</p>
 
   <h2>What the model leaves out</h2>
   <p>The simulation only recombines the past. Its worst stretches come from 1973 to 1974, 1987, 2000 to
-    2002, and 2008, and it contains nothing as deep as 1929 to 1932. It breaks any pattern that lasts longer
-    than a year, such as valuations drifting back over decades. With about
-    <span class="num pending" data-num="sample_years" data-fmt="yearsint">…</span> years of data, a 50-year path reuses
-    much of the same history, so the longest horizons are the least certain. It ignores taxes, trading
-    costs, and the chance that a fund closes, and it models a single lump sum, not regular
-    contributions.</p>
+    2002, and 2008, and it contains nothing as deep as 1929 to 1932. It breaks any pattern that lasts
+    longer than a year, such as valuations drifting back over decades. With about
+    <span class="num pending" data-num="sample_years" data-fmt="yearsint">…</span> years of data, a 50-year path reuses much of the same history, so the
+    longest horizons are the least certain. The fitted borrowing spread is an average from 1993 onward and
+    was probably wider in the high-rate 1970s. The model ignores taxes, trading costs, and the chance that
+    a fund closes, and it covers a single lump sum, not regular contributions.</p>
 
-  <h2>So should you hold one?</h2>
-  <p>If the bad outcomes are what you care about, hold none: at the 10th percentile the best share in a
-    leveraged fund is zero at <span class="num pending" data-num="p10_zero_horizons_3x" data-fmt="int">…</span>
-    of <span class="num pending" data-num="horizon_count" data-fmt="int">…</span> horizons for 3x. If you have
-    decades ahead, can stomach losing most of a slice in a bad year, and will keep rebalancing through it,
-    a small slice of a 3x fund has historically cost little in the bad cases and added meaningfully to the
-    typical outcome. That is a narrow group of investors. For everyone else, the plain index fund is the
-    better trade, not because leverage loses on average, but because the ride makes it easy to lose by
-    quitting. The chart shows where the trade-off sits for the outcome and horizon you care about.</p>
+  <h2>Conclusion</h2>
+  <p>The results argue for a little leverage, not for leveraged ETFs as such. Over long horizons, a
+    portfolio with slightly more than 1x exposure has historically given up little at the 10th percentile
+    and gained meaningfully at the median: for 10% in a 3x fund over 50 years,
+    <span class="num pending" data-num="mix_3x_10_h50_p10_change" data-fmt="pctsigned1">…</span> at the 10th percentile and
+    <span class="num pending" data-num="mix_3x_10_h50_p50_change" data-fmt="pctsigned">…</span> at the median. Below about the 10th percentile, and at
+    shorter horizons, the plain index fund wins.</p>
+  <p>An LETF is one way to get that leverage. It costs about <span class="num pending" data-num="borrow_rate_3x" data-fmt="pct1">…</span> a year per borrowed
+    dollar today, more than futures, box spreads, or the cheapest margin, but much less than margin at
+    large retail brokers, and it can never lose more than the money in it. The bigger cost is the ride:
+    deeper drawdowns, longer recoveries, and a slice that can lose most of its value in a single bad year.
+    For patient investors with decades ahead who will keep rebalancing through a crash, a small slice can
+    be reasonable. For most investors, the index fund on its own remains the better choice, not because
+    leverage loses on average, but because the ride makes it easy to lose by quitting.</p>
   <p class="byline">Data: S&amp;P 500 (Yahoo Finance, Robert Shiller), federal funds rate and CPI (FRED),
     fund NAVs and SEC annual reports. Simulation period
     <span class="num pending" data-num="sample_start" data-fmt="year">…</span>–<span class="num pending" data-num="sample_end" data-fmt="year">…</span>.</p>
