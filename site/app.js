@@ -13,7 +13,7 @@ const SETTINGS = {
   spread_max: { label: "Borrowing spread at its rolling maximum" },
 };
 
-const state = { letf: "3", percentile: 5, horizon: 30, mix: 0.25, metric: "terminal_wealth", setting: "main" };
+const state = { letf: "3", percentile: 10, horizon: 50, mix: 0.1, metric: "terminal_wealth", setting: "main" };
 const cache = new Map();
 let current = null; // data currently shown
 let shownSetting = "main"; // setting whose data is in `current`
@@ -27,6 +27,9 @@ const years = (n) => `${n} ${n === 1 ? "year" : "years"}`;
 const FORMATS = {
   pct: (v) => pct(v),
   pct1: (v) => pct(v, 1),
+  pctsigned: (v) => `${v >= 0 ? "+" : "−"}${pct(Math.abs(v))}`,
+  pctsigned1: (v) => `${v >= 0 ? "+" : "−"}${pct(Math.abs(v), 1)}`,
+  xplain: (v) => `${v.toFixed(1)}×`,
   x: (v) => `${v.toFixed(2)}×`,
   x1: (v) => `${v.toFixed(1)}×`,
   int: (v) => Math.round(v).toLocaleString("en-US"),

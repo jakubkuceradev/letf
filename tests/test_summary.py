@@ -31,11 +31,13 @@ def test_numbers_match_results():
     s = _summary()
     grid = pd.read_parquet(RESULTS / "grid.parquet")
     w_star = pd.read_parquet(RESULTS / "w_star.parquet")
-    row = grid[(grid.setting == "main") & (grid.letf == 3) & np.isclose(grid.w, 0.25) & (grid.horizon == 30)]
-    assert s["mix_3x_25_p50"] == pytest.approx(row.tw_p50.iloc[0])
-    assert s["mix_3x_25_beat"] == pytest.approx(1 - row.p_below_base.iloc[0])
+    row = grid[(grid.setting == "main") & (grid.letf == 3) & np.isclose(grid.w, 0.1) & (grid.horizon == 50)]
+    assert s["mix_3x_10_h50_p50"] == pytest.approx(row.tw_p50.iloc[0])
+    assert s["mix_3x_10_h50_p10"] == pytest.approx(row.tw_p10.iloc[0])
+    assert s["mix_3x_10_h50_mdd_bad"] == pytest.approx(row.mdd_p90.iloc[0])  # 10th percentile of outcomes
+    assert s["mix_3x_10_h50_beat"] == pytest.approx(1 - row.p_below_base.iloc[0])
     ws = w_star[(w_star.setting == "main") & (w_star.letf == 2) & (w_star.horizon == 30)]
-    assert s["wstar_p5_h30_2x"] == ws[ws.percentile == 5].w_star.iloc[0]
+    assert s["wstar_p10_h30_2x"] == ws[ws.percentile == 10].w_star.iloc[0]
     start = s["positive_from_h30_2x"]
     by_p = ws.set_index("percentile").w_star
     assert (by_p[by_p.index >= start] > 0).all()

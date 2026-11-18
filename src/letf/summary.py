@@ -2,13 +2,19 @@
 
 Keys are stable names used by ``data-num`` placeholders in ``site/index.html``.
 Values are raw numbers (fractions, multiples, years); the page formats them.
+
+Percentiles here always rank outcomes from worst to best. For drawdown and time under
+water, where lower is better, the p-th percentile of outcomes is the (100 - p)-th
+percentile of the data.
 """
 
 import numpy as np
 import pandas as pd
 
-HEADLINE_HORIZON = 30
-MIX_SHARES = (0.25, 0.5, 1.0)
+CUTOFF = 10  # headline percentile of outcomes
+HORIZONS = (10, 20, 30, 40, 50)
+# (letf, share, horizon) combinations the text discusses.
+MIXES = ((3, 0.1, 50), (3, 0.2, 50), (2, 0.2, 50), (3, 0.1, 40), (3, 0.1, 30), (3, 0.3, 50))
 
 
 def _row(grid: pd.DataFrame, setting: str, letf: int, w: float, horizon: int) -> pd.Series:
@@ -20,8 +26,9 @@ def _row(grid: pd.DataFrame, setting: str, letf: int, w: float, horizon: int) ->
     return sel.iloc[0]
 
 
-def _wstar(w_star: pd.DataFrame, setting: str, letf: int, horizon: int) -> pd.DataFrame:
-    return w_star[(w_star.setting == setting) & (w_star.letf == letf) & (w_star.horizon == horizon)]
+def _bad(row: pd.Series, metric: str, cutoff: int = CUTOFF) -> float:
+    """Value at the ``cutoff`` percentile of outcomes for a lower-is-better metric."""
+    return row[f"{metric}_p{100 - cutoff:02d}"]
 
 
 def _positive_from(ws: pd.DataFrame) -> int | None:
@@ -34,6 +41,27 @@ def _positive_from(ws: pd.DataFrame) -> int | None:
     return int(above.percentile.min()) if len(above) else None
 
 
+def _last_crossover(crossovers: pd.DataFrame, setting: str, letf: int, w: float, horizon: int):
+    sel = crossovers[
+        (crossovers.setting == setting)
+        & (crossovers.letf == letf)
+        & np.isclose(crossovers.w, w)
+        & (crossovers.horizon == horizon)
+    ].crossover_percentiles
+    return float(sel.iloc[0][-1]) if len(sel) and len(sel.iloc[0]) else None
+
+
+def _outcomes(row: pd.Series) -> dict:
+    return {
+        "p10": row.tw_p10,
+        "p50": row.tw_p50,
+        "mdd50": row.mdd_p50,
+        "mdd_bad": _bad(row, "mdd"),
+        "uw50": row.uw_p50,
+        "uw_bad": _bad(row, "uw"),
+    }
+
+
 def article_numbers(
     grid: pd.DataFrame,
     w_star: pd.DataFrame,
@@ -43,6 +71,7 @@ def article_numbers(
     n_paths: int,
 ) -> dict:
     out: dict = {
+        "cutoff": CUTOFF,
         "sample_start": checks["sample_start"],
         "sample_end": checks["sample_end"],
         "sample_years": (pd.Timestamp(checks["sample_end"]) - pd.Timestamp(checks["sample_start"])).days
@@ -59,64 +88,53 @@ def article_numbers(
         out[f"{key}_k"] = f["monthly"]["k"]
         out[f"{key}_s"] = f["monthly"]["s_annual"]
         out[f"{key}_er"] = f["latest_er"]
-        out[f"{key}_s_min"] = f["rolling_s_min"]
-        out[f"{key}_s_max"] = f["rolling_s_max"]
 
-    h = HEADLINE_HORIZON
-    base = _row(grid, "main", 3, 0.0, h)
-    out |= {
-        "base_p5": base.tw_p05,
-        "base_p50": base.tw_p50,
-        "base_p95": base.tw_p95,
-        "base_mdd50": base.mdd_p50,
-        "base_uw50": base.uw_p50,
-    }
+    for h in (30, 40, 50):
+        for k, v in _outcomes(_row(grid, "main", 3, 0.0, h)).items():
+            out[f"base_h{h}_{k}"] = v
 
+    main = w_star[w_star.setting == "main"]
     settings = sorted(w_star.setting.unique())
+    out["sens_count"] = len(settings)
+    out["variant_count"] = len([x for x in settings if x != "rebalance_none"])
+    out["horizon_count"] = int(main.horizon.nunique())
     for letf in (2, 3):
         tag = f"{letf}x"
-        for horizon in (10, 20, 30, 40):
-            ws = _wstar(w_star, "main", letf, horizon).sort_values("percentile")
-            out[f"wstar_p5_h{horizon}_{tag}"] = ws[ws.percentile == 5].w_star.iloc[0]
-            out[f"positive_from_h{horizon}_{tag}"] = _positive_from(ws)
-        p5_all = w_star[(w_star.setting == "main") & (w_star.letf == letf) & (w_star.percentile == 5)]
-        out[f"p5_zero_horizons_{tag}"] = int((p5_all.w_star == 0).sum())
-        out["horizon_count"] = int(p5_all.horizon.nunique())
-        ws = _wstar(w_star, "main", letf, h)
-        out[f"wstar_p25_{tag}"] = ws[ws.percentile == 25].w_star.iloc[0]
-        out[f"wstar_p50_{tag}"] = ws[ws.percentile == 50].w_star.iloc[0]
-
-        for w in MIX_SHARES:
-            r = _row(grid, "main", letf, w, h)
-            mk = f"mix_{tag}_{round(w * 100)}"
-            cross = crossovers[
-                (crossovers.setting == "main")
-                & (crossovers.letf == letf)
-                & np.isclose(crossovers.w, w)
-                & (crossovers.horizon == h)
-            ].crossover_percentiles.iloc[0]
-            out |= {
-                f"{mk}_p5": r.tw_p05,
-                f"{mk}_p50": r.tw_p50,
-                f"{mk}_p95": r.tw_p95,
-                f"{mk}_beat": 1.0 - r.p_below_base,
-                f"{mk}_mdd50": r.mdd_p50,
-                f"{mk}_uw50": r.uw_p50,
-                f"{mk}_cross": float(cross[0]) if len(cross) else None,
-                f"{mk}_cross_count": len(cross),
-            }
-
-        for setting, name in (
-            ("main", "annual"),
-            ("rebalance_quarterly", "quarterly"),
-            ("rebalance_none", "none"),
+        m = main[main.letf == letf]
+        for h in HORIZONS:
+            ws = m[m.horizon == h]
+            out[f"wstar_p{CUTOFF}_h{h}_{tag}"] = ws[ws.percentile == CUTOFF].w_star.iloc[0]
+            out[f"wstar_p50_h{h}_{tag}"] = ws[ws.percentile == 50].w_star.iloc[0]
+            out[f"positive_from_h{h}_{tag}"] = _positive_from(ws)
+        for p in (5, CUTOFF):
+            at = m[m.percentile == p]
+            out[f"p{p}_zero_horizons_{tag}"] = int((at.w_star == 0).sum())
+        cut50 = w_star[(w_star.letf == letf) & (w_star.horizon == 50) & (w_star.percentile == CUTOFF)]
+        out[f"sens_p{CUTOFF}_h50_max_{tag}"] = cut50.w_star.max()
+        for name, setting in (
+            ("annual", "main"),
+            ("quarterly", "rebalance_quarterly"),
+            ("none", "rebalance_none"),
         ):
-            out[f"ruin_{name}_{tag}"] = _row(grid, setting, letf, 0.25, h).p_letf_ruin
+            for h in (30, 50):
+                out[f"ruin_{name}_h{h}_{tag}"] = _row(grid, setting, letf, 0.1, h).p_letf_ruin
 
-        p5 = w_star[(w_star.letf == letf) & (w_star.horizon == h) & (w_star.percentile == 5)]
-        p50 = w_star[(w_star.letf == letf) & (w_star.horizon == h) & (w_star.percentile == 50)]
-        out[f"sens_p5_zero_count_{tag}"] = int((p5.w_star == 0).sum())
-        out[f"sens_p50_min_{tag}"] = p50.w_star.min()
-        out[f"sens_p50_max_{tag}"] = p50.w_star.max()
-    out["sens_count"] = len(settings)
+    for letf, w, h in MIXES:
+        mk = f"mix_{letf}x_{round(w * 100)}_h{h}"
+        row = _row(grid, "main", letf, w, h)
+        out[f"{mk}_exposure"] = 1 + w * (letf - 1)
+        out[f"{mk}_beat"] = 1.0 - row.p_below_base
+        out[f"{mk}_cross"] = _last_crossover(crossovers, "main", letf, w, h)
+        for k, v in _outcomes(row).items():
+            out[f"{mk}_{k}"] = v
+        base = _row(grid, "main", letf, 0.0, h)
+        out[f"{mk}_p10_change"] = row.tw_p10 / base.tw_p10 - 1
+        out[f"{mk}_p50_change"] = row.tw_p50 / base.tw_p50 - 1
+        # Robustness range over variants of the same rebalanced strategy; no rebalancing is a
+        # different strategy and is reported on its own.
+        variants = [x for x in settings if x != "rebalance_none"]
+        crosses = [c for c in (_last_crossover(crossovers, x, letf, w, h) for x in variants) if c is not None]
+        out[f"{mk}_cross_min"] = min(crosses)
+        out[f"{mk}_cross_max"] = max(crosses)
+        out[f"{mk}_cross_norebal"] = _last_crossover(crossovers, "rebalance_none", letf, w, h)
     return {k: (v.item() if isinstance(v, np.generic) else v) for k, v in out.items()}

@@ -8,7 +8,7 @@ The analysis works in three steps:
 2. It uses the model to rebuild LETF returns back to the launch of the S&P 500 in March 1957.
 3. It resamples that history with a circular block bootstrap and compares the outcomes of each allocation over horizons from 1 to 50 years.
 
-The headline result is the LETF allocation that maximizes the 5th percentile of real terminal wealth at a 30-year horizon. An interactive chart lets readers choose any other percentile and horizon.
+The headline result is how a small LETF share changes real terminal wealth at the 10th percentile and the median over long horizons, against the much rougher ride it brings. The 5th percentile is reported too, but at 30 to 50 years it rests on a handful of reused crises. An interactive chart lets readers choose any other percentile and horizon.
 
 ## Data
 
