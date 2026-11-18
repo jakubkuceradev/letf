@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leveraged ETFs, Long Term</title>
+  <meta name="description" content="A simulation since 1957 of mixing a daily 2x or 3x S&P 500 fund into an all-stock portfolio.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/d3.min.js"></script>
+  <script src="vendor/plot.umd.min.js"></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+<main class="article">
+  <h1>Do leveraged ETFs belong in a long-term portfolio?</h1>
+  <p class="dek">We rebuilt daily 2x and 3x S&amp;P 500 funds back to 1957 and simulated thousands of
+    lump-sum portfolios. Leverage raises the typical outcome. It does not help the bad ones.</p>
+  <p class="draft-note">Draft. Every number in this text is filled in from the analysis results when the
+    page loads, so it always matches the chart.</p>
+
+  <h2>The short answer</h2>
+  <p>If you judge a portfolio by its bad outcomes, the best amount to hold in a leveraged ETF is none.
+    Take the 5th percentile of real, inflation-adjusted wealth after 30 years: the outcome that 95% of
+    simulated paths beat. The allocation that maximizes it is
+    <span class="num pending" data-num="wstar_p5_h30_3x" data-fmt="pct">…</span> in a 3x fund and
+    <span class="num pending" data-num="wstar_p5_h30_2x" data-fmt="pct">…</span> in a 2x fund. The answer is
+    the same at 10, 20, and 40 years, and in all
+    <span class="num pending" data-num="sens_count" data-fmt="int">…</span> variations of the simulation we
+    tested.</p>
+  <p>Move up the distribution and leverage starts to pay. After 30 years, some 3x exposure beats a plain
+    index fund from about the <span class="num pending" data-num="first_pct_positive_h30_3x" data-fmt="ord">…</span>
+    percentile up (the <span class="num pending" data-num="first_pct_positive_h30_2x" data-fmt="ord">…</span>
+    for 2x). At the median, the best share is
+    <span class="num pending" data-num="wstar_p50_3x" data-fmt="pct">…</span> in 3x and
+    <span class="num pending" data-num="wstar_p50_2x" data-fmt="pct">…</span> in 2x. Whether that trade is
+    worth it depends on which outcomes you care about, and the chart below lets you pick.</p>
+
+  <h2>What a daily leveraged ETF does</h2>
+  <p>A 3x S&amp;P 500 fund aims to return three times the index's return every day, not over any longer
+    period. To do that it holds three dollars of index exposure for every dollar invested, mostly through
+    swaps, and pays to borrow the extra two dollars at an overnight rate plus a spread. It also charges an
+    expense ratio of a little under 1% a year.</p>
+  <p>Resetting every day has a cost of its own. After a 10% fall, a 3x fund is down 30% and needs a 43%
+    gain to recover, while the index needs only 11%. In choppy markets these losses compound, and over
+    decades they can outweigh the extra return. Whether they do is an empirical question, which is why the
+    funds' long-run behaviour has to be simulated rather than read off a formula.</p>
+
+  <h2>Rebuilding leveraged returns back to 1957</h2>
+  <p>The oldest daily S&amp;P 500 leveraged funds date from the 1990s, which is too short to say much
+    about 30-year outcomes. So we modelled the funds' costs and used the model to rebuild their returns
+    back to the launch of the S&amp;P 500 in March 1957.</p>
+  <p>The model treats a fund's daily return as its leverage times the index's total return, minus
+    financing on the borrowed part at the federal funds rate, minus its expense ratio and a fitted
+    borrowing spread. We fitted it to the
+    <span class="num pending" data-num="funds_count" data-fmt="int">…</span> longest-running daily S&amp;P 500
+    funds (Rydex Nova, ProFunds UltraBull, ProShares SSO and UPRO, Direxion SPXL), using each fund's actual
+    expense ratios from its annual reports. Fitted on the first half of each fund's history, the model
+    predicted the second half within half a percentage point a year for
+    <span class="num pending" data-num="oos_pass_count" data-fmt="int">…</span> of
+    <span class="num pending" data-num="funds_count" data-fmt="int">…</span> funds.</p>
+  <p>The fits match the theory closely. For SSO, the 2x fund, the financing coefficient is
+    <span class="num pending" data-num="sso_k" data-fmt="dec2">…</span> against a theoretical 1.00, with a
+    borrowing spread of <span class="num pending" data-num="sso_s" data-fmt="pct1">…</span> a year on top of
+    its <span class="num pending" data-num="sso_er" data-fmt="pct1">…</span> expense ratio. For UPRO, the 3x
+    fund, the coefficient is <span class="num pending" data-num="upro_k" data-fmt="dec2">…</span> against
+    2.00, with a spread of <span class="num pending" data-num="upro_s" data-fmt="pct1">…</span>. The rebuilt
+    2x and 3x series use these two funds' costs.</p>
+
+  <h2>Simulating thousands of futures</h2>
+  <p>History from <span class="num pending" data-num="sample_start" data-fmt="date">…</span> to
+    <span class="num pending" data-num="sample_end" data-fmt="date">…</span> contains only one sequence of
+    markets. To see the range of outcomes, a circular block bootstrap stitches together randomly chosen
+    one-year stretches of that history into
+    <span class="num pending" data-num="paths" data-fmt="int">…</span> new 50-year paths. Each stretch keeps
+    its own index returns, interest rates, and inflation, so a 1981 year always carries 1981 borrowing
+    costs.</p>
+  <p>Every portfolio starts as a single lump sum split between a 2x or 3x fund and an S&amp;P 500 index
+    fund, and rebalances back to its target once a year. Results are in real dollars, after inflation, and
+    expressed as a multiple of the starting amount.</p>
+
+  <h2>The bad outcomes: leverage only hurts</h2>
+  <p>After 30 years, a 100% S&amp;P 500 portfolio ends at
+    <span class="num pending" data-num="base_p5" data-fmt="x">…</span> its starting real value at the 5th
+    percentile. Moving 25% into a 3x fund lowers that to
+    <span class="num pending" data-num="mix_3x_25_p5" data-fmt="x">…</span>; 50% lowers it to
+    <span class="num pending" data-num="mix_3x_50_p5" data-fmt="x">…</span>; and holding only the 3x fund
+    leaves <span class="num pending" data-num="mix_3x_100_p5" data-fmt="x">…</span>. Every step toward
+    leverage makes the bad outcomes worse.</p>
+
+  <h2>The typical outcome: leverage helps, up to a point</h2>
+  <p>The median tells a different story. The plain index fund ends at
+    <span class="num pending" data-num="base_p50" data-fmt="x1">…</span>. A 25% 3x mix reaches
+    <span class="num pending" data-num="mix_3x_25_p50" data-fmt="x1">…</span> and a 50% mix
+    <span class="num pending" data-num="mix_3x_50_p50" data-fmt="x1">…</span>. Going all the way to 100% 3x
+    drops the median back to <span class="num pending" data-num="mix_3x_100_p50" data-fmt="x1">…</span>: past a
+    point, the daily-reset losses eat the extra return.</p>
+  <p>There are two ways to compare a mix with the index fund. On the same simulated path, a 25% 3x mix ends
+    ahead on <span class="num pending" data-num="mix_3x_25_beat" data-fmt="pct">…</span> of paths and a 50% mix
+    on <span class="num pending" data-num="mix_3x_50_beat" data-fmt="pct">…</span>. Comparing the two
+    distributions instead, the mix's outcomes overtake the index fund's above roughly the
+    <span class="num pending" data-num="mix_3x_25_cross" data-fmt="ord">…</span> percentile for the 25% mix and
+    the <span class="num pending" data-num="mix_3x_50_cross" data-fmt="ord">…</span> for the 50% mix. Below
+    that crossover, the mix's bad outcomes are worse than the index fund's bad outcomes.</p>
+
+  <h2>The ride</h2>
+  <p>Leverage also makes the path harder to sit through. The typical worst fall from a peak during 30 years
+    is <span class="num pending" data-num="base_mdd50" data-fmt="pct">…</span> for the index fund,
+    <span class="num pending" data-num="mix_3x_25_mdd50" data-fmt="pct">…</span> for a 25% 3x mix, and
+    <span class="num pending" data-num="mix_3x_50_mdd50" data-fmt="pct">…</span> for a 50% mix. The longest
+    stretch below a previous peak grows from about
+    <span class="num pending" data-num="base_uw50" data-fmt="yearsint">…</span> to
+    <span class="num pending" data-num="mix_3x_50_uw50" data-fmt="yearsint">…</span> years.</p>
+  <p>The leveraged part itself can be nearly wiped out. With annual rebalancing, the 3x holding loses 90%
+    or more between two rebalances at some point on
+    <span class="num pending" data-num="ruin_annual_3x" data-fmt="pct1">…</span> of 30-year paths. Rebalancing
+    quarterly brings that to <span class="num pending" data-num="ruin_quarterly_3x" data-fmt="pct1">…</span>;
+    never rebalancing raises it to <span class="num pending" data-num="ruin_none_3x" data-fmt="pct1">…</span>.
+    For 2x the annual figure is <span class="num pending" data-num="ruin_annual_2x" data-fmt="pct1">…</span>.</p>
+
+  <section class="figure" aria-labelledby="fig-title">
+    <h3 id="fig-title">Pick your own percentile</h3>
+    <p class="caption">Choose the outcome you care about and the horizon. The views update together. Real
+      wealth, lump sum, <span class="num pending" data-num="paths" data-fmt="int">…</span> simulated paths per setting.</p>
+    <div class="controls" role="group" aria-label="Chart settings">
+      <div class="control">
+        <span class="label" id="letf-label">LETF</span>
+        <div class="segmented" id="letf" role="group" aria-labelledby="letf-label">
+          <button type="button" data-letf="2" aria-pressed="false">2x</button>
+          <button type="button" data-letf="3" aria-pressed="true">3x</button>
+        </div>
+      </div>
+      <div class="control">
+        <label for="percentile">Percentile <output id="percentile-out">5th</output></label>
+        <input id="percentile" type="range" min="1" max="99" step="1" value="5">
+      </div>
+      <div class="control">
+        <label for="horizon">Horizon <output id="horizon-out">30 yr</output></label>
+        <input id="horizon" type="range" min="1" max="50" step="1" value="30">
+      </div>
+      <div class="control">
+        <label for="mix">Mix to compare <output id="mix-out">25%</output></label>
+        <input id="mix" type="range" min="5" max="100" step="5" value="25">
+      </div>
+      <div class="control">
+        <label for="metric">Measure</label>
+        <select id="metric"></select>
+      </div>
+      <div class="control">
+        <label for="setting">Simulation</label>
+        <select id="setting"></select>
+      </div>
+    </div>
+    <p class="readout" id="readout" aria-live="polite">Loading results…</p>
+    <p class="error" id="chart-error" role="alert"></p>
+    <div class="views" id="views" aria-busy="true">
+      <section class="view" id="view-share">
+        <h4>How much to hold in the LETF</h4>
+        <p class="sub"></p>
+        <figure></figure>
+        <details class="table"><summary>Table</summary><div class="scroll"></div></details>
+      </section>
+      <section class="view" id="view-dist">
+        <h4>The whole distribution</h4>
+        <p class="sub"></p>
+        <div class="legend"></div>
+        <figure></figure>
+        <details class="table"><summary>Table</summary><div class="scroll"></div></details>
+      </section>
+      <section class="view wide" id="view-heat">
+        <h4>Best LETF share for every horizon and percentile</h4>
+        <p class="sub">Click a cell to select that horizon and percentile.</p>
+        <figure></figure>
+        <details class="table"><summary>Table for the selected horizon</summary><div class="scroll"></div></details>
+      </section>
+    </div>
+  </section>
+
+  <h2>How robust is this?</h2>
+  <p>We reran the simulation with quarterly and no rebalancing, with block lengths from one month to ten
+    years, and with the borrowing spread at the lowest and highest values seen over any two-year window.
+    The best 3x share at the 5th percentile after 30 years is zero in
+    <span class="num pending" data-num="sens_p5_zero_count_3x" data-fmt="int">…</span> of
+    <span class="num pending" data-num="sens_count" data-fmt="int">…</span> settings, and the best 2x share in
+    <span class="num pending" data-num="sens_p5_zero_count_2x" data-fmt="int">…</span>. The median answer moves
+    more: the best 3x share at the median ranges from
+    <span class="num pending" data-num="sens_p50_min_3x" data-fmt="pct">…</span> to
+    <span class="num pending" data-num="sens_p50_max_3x" data-fmt="pct">…</span>.</p>
+
+  <h2>What the model leaves out</h2>
+  <p>The simulation only recombines the past. Its worst stretches come from 1973 to 1974, 1987, 2000 to
+    2002, and 2008, and it contains nothing as deep as 1929 to 1932. It breaks any pattern that lasts longer
+    than a year, such as valuations drifting back over decades. With <span class="num pending" data-num="sample_years" data-fmt="years">…</span> of data, a 50-year path
+    reuses much of the same history. It ignores taxes, trading costs, and the chance that a fund closes, and
+    it models a single lump sum, not regular contributions.</p>
+
+  <h2>So should you hold one?</h2>
+  <p>A leveraged ETF is a bet on the middle and upper part of the distribution. If your priority is to
+    avoid the worst outcomes, the simulation says to hold none. If you can accept a worse bad case for a
+    better typical one, a modest share of a 2x or 3x fund has historically raised median wealth, as long as
+    it is rebalanced and kept well short of the whole portfolio. The chart shows where that trade-off sits
+    for the outcome you care about.</p>
+  <p class="byline">Data: S&amp;P 500 (Yahoo Finance, Robert Shiller), federal funds rate and CPI (FRED),
+    fund NAVs and SEC annual reports. Simulation period
+    <span class="num pending" data-num="sample_start" data-fmt="year">…</span>–<span class="num pending" data-num="sample_end" data-fmt="year">…</span>.</p>
+</main>
+</body>
+</html>
