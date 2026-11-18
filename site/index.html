@@ -24,13 +24,16 @@
     Take the 5th percentile of real, inflation-adjusted wealth after 30 years: the outcome that 95% of
     simulated paths beat. The allocation that maximizes it is
     <span class="num pending" data-num="wstar_p5_h30_3x" data-fmt="pct">…</span> in a 3x fund and
-    <span class="num pending" data-num="wstar_p5_h30_2x" data-fmt="pct">…</span> in a 2x fund. The answer is
-    the same at 10, 20, and 40 years, and in all
-    <span class="num pending" data-num="sens_count" data-fmt="int">…</span> variations of the simulation we
-    tested.</p>
+    <span class="num pending" data-num="wstar_p5_h30_2x" data-fmt="pct">…</span> in a 2x fund. Across all
+    <span class="num pending" data-num="horizon_count" data-fmt="int">…</span> horizons from 1 to 50 years, the
+    5th-percentile answer is zero at <span class="num pending" data-num="p5_zero_horizons_3x" data-fmt="int">…</span>
+    for 3x and <span class="num pending" data-num="p5_zero_horizons_2x" data-fmt="int">…</span> for 2x. At 30 years it
+    is zero in <span class="num pending" data-num="sens_p5_zero_count_3x" data-fmt="int">…</span> of the
+    <span class="num pending" data-num="sens_count" data-fmt="int">…</span> variations of the simulation we tested
+    for 3x, and in <span class="num pending" data-num="sens_p5_zero_count_2x" data-fmt="int">…</span> for 2x.</p>
   <p>Move up the distribution and leverage starts to pay. After 30 years, some 3x exposure beats a plain
-    index fund from about the <span class="num pending" data-num="first_pct_positive_h30_3x" data-fmt="ord">…</span>
-    percentile up (the <span class="num pending" data-num="first_pct_positive_h30_2x" data-fmt="ord">…</span>
+    index fund at every percentile from the <span class="num pending" data-num="positive_from_h30_3x" data-fmt="ord">…</span>
+    percentile up (the <span class="num pending" data-num="positive_from_h30_2x" data-fmt="ord">…</span>
     for 2x). At the median, the best share is
     <span class="num pending" data-num="wstar_p50_3x" data-fmt="pct">…</span> in 3x and
     <span class="num pending" data-num="wstar_p50_2x" data-fmt="pct">…</span> in 2x. Whether that trade is
@@ -59,12 +62,12 @@
     predicted the second half within half a percentage point a year for
     <span class="num pending" data-num="oos_pass_count" data-fmt="int">…</span> of
     <span class="num pending" data-num="funds_count" data-fmt="int">…</span> funds.</p>
-  <p>The fits match the theory closely. For SSO, the 2x fund, the financing coefficient is
+  <p>For SSO, the 2x fund, the fit matches the theory closely: the financing coefficient is
     <span class="num pending" data-num="sso_k" data-fmt="dec2">…</span> against a theoretical 1.00, with a
     borrowing spread of <span class="num pending" data-num="sso_s" data-fmt="pct1">…</span> a year on top of
     its <span class="num pending" data-num="sso_er" data-fmt="pct1">…</span> expense ratio. For UPRO, the 3x
     fund, the coefficient is <span class="num pending" data-num="upro_k" data-fmt="dec2">…</span> against
-    2.00, with a spread of <span class="num pending" data-num="upro_s" data-fmt="pct1">…</span>. The rebuilt
+    2.00, so it pays somewhat more for its borrowing than the federal funds rate alone, plus a spread of <span class="num pending" data-num="upro_s" data-fmt="pct1">…</span>. The rebuilt
     2x and 3x series use these two funds' costs.</p>
 
   <h2>Simulating thousands of futures</h2>
@@ -169,7 +172,7 @@
       </section>
       <section class="view wide" id="view-heat">
         <h4>Best LETF share for every horizon and percentile</h4>
-        <p class="sub">Click a cell to select that horizon and percentile.</p>
+        <p class="sub">Click a cell, or focus the chart and use the arrow keys, to select a horizon and percentile.</p>
         <figure></figure>
         <details class="table"><summary>Table for the selected horizon</summary><div class="scroll"></div></details>
       </section>
@@ -196,10 +199,13 @@
 
   <h2>So should you hold one?</h2>
   <p>A leveraged ETF is a bet on the middle and upper part of the distribution. If your priority is to
-    avoid the worst outcomes, the simulation says to hold none. If you can accept a worse bad case for a
-    better typical one, a modest share of a 2x or 3x fund has historically raised median wealth, as long as
-    it is rebalanced and kept well short of the whole portfolio. The chart shows where that trade-off sits
-    for the outcome you care about.</p>
+    avoid the worst outcomes, the simulation says to hold none: every step toward leverage lowers the bad
+    cases. If you care about the typical outcome, the two funds differ. For 3x, median wealth peaks at about
+    <span class="num pending" data-num="wstar_p50_3x" data-fmt="pct">…</span> of the portfolio and falls beyond
+    it, because the daily-reset losses grow faster than the extra return. For 2x, median wealth keeps rising
+    up to <span class="num pending" data-num="wstar_p50_2x" data-fmt="pct">…</span>, but the bad cases and the
+    drawdowns get worse all the way. Either way the portfolio has to be rebalanced. The chart shows where the
+    trade-off sits for the outcome you care about.</p>
   <p class="byline">Data: S&amp;P 500 (Yahoo Finance, Robert Shiller), federal funds rate and CPI (FRED),
     fund NAVs and SEC annual reports. Simulation period
     <span class="num pending" data-num="sample_start" data-fmt="year">…</span>–<span class="num pending" data-num="sample_end" data-fmt="year">…</span>.</p>

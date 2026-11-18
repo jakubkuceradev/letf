@@ -24,6 +24,16 @@ def _wstar(w_star: pd.DataFrame, setting: str, letf: int, horizon: int) -> pd.Da
     return w_star[(w_star.setting == setting) & (w_star.letf == letf) & (w_star.horizon == horizon)]
 
 
+def _positive_from(ws: pd.DataFrame) -> int | None:
+    """Lowest percentile from which w* stays above zero for every higher percentile."""
+    w = ws.sort_values("percentile")
+    zero = w[w.w_star == 0].percentile
+    if zero.empty:
+        return int(w.percentile.min())
+    above = w[w.percentile > zero.max()]
+    return int(above.percentile.min()) if len(above) else None
+
+
 def article_numbers(
     grid: pd.DataFrame,
     w_star: pd.DataFrame,
@@ -68,7 +78,10 @@ def article_numbers(
         for horizon in (10, 20, 30, 40):
             ws = _wstar(w_star, "main", letf, horizon).sort_values("percentile")
             out[f"wstar_p5_h{horizon}_{tag}"] = ws[ws.percentile == 5].w_star.iloc[0]
-            out[f"first_pct_positive_h{horizon}_{tag}"] = int(ws[ws.w_star > 0].percentile.min())
+            out[f"positive_from_h{horizon}_{tag}"] = _positive_from(ws)
+        p5_all = w_star[(w_star.setting == "main") & (w_star.letf == letf) & (w_star.percentile == 5)]
+        out[f"p5_zero_horizons_{tag}"] = int((p5_all.w_star == 0).sum())
+        out["horizon_count"] = int(p5_all.horizon.nunique())
         ws = _wstar(w_star, "main", letf, h)
         out[f"wstar_p25_{tag}"] = ws[ws.percentile == 25].w_star.iloc[0]
         out[f"wstar_p50_{tag}"] = ws[ws.percentile == 50].w_star.iloc[0]

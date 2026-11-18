@@ -11,6 +11,11 @@ export const ordinal = (n) => {
   return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
 };
 
+// Percentiles always rank outcomes from worst (1) to best (99). For measures where lower is
+// better (`invert`), the p-th percentile of outcomes is the (100 - p)-th percentile of the data.
+export const outcomeIndex = (metric, percentile) =>
+  METRICS[metric].invert ? 99 - percentile : percentile - 1;
+
 export const METRICS = {
   terminal_wealth: {
     label: "Real terminal wealth (multiple of the starting amount)",
@@ -25,6 +30,7 @@ export const METRICS = {
     fmt: pct,
     log: false,
     better: "lower",
+    invert: true,
   },
   underwater_years: {
     label: "Longest time below a previous peak (years)",
@@ -32,6 +38,7 @@ export const METRICS = {
     fmt: (v) => `${v.toFixed(1)} yr`,
     log: false,
     better: "lower",
+    invert: true,
   },
 };
 
@@ -133,6 +140,13 @@ export function shareView({ rows, metric, wStar, width, tokens, letf }) {
   });
 }
 
+// Label crossovers only when they are at least 8 percentiles apart; the dots mark all of them.
+function labelled(cross) {
+  const out = [];
+  for (const c of cross) if (!out.length || c.p - out[out.length - 1].p >= 8) out.push(c);
+  return out;
+}
+
 // View 2: terminal wealth across percentiles for the baseline and the selected mix.
 export function distributionView({ rows, crossings, percentile, mixLabel, width, tokens }) {
   const long = rows.flatMap((r) => [
@@ -158,7 +172,7 @@ export function distributionView({ rows, crossings, percentile, mixLabel, width,
       Plot.ruleX([percentile], { stroke: tokens.textPrimary, strokeWidth: 1 }),
       Plot.line(long, { x: "p", y: "value", stroke: "series", strokeWidth: 2 }),
       Plot.dot(cross, { x: "p", y: "value", r: 5, fill: tokens.surface, stroke: tokens.textPrimary, strokeWidth: 2 }),
-      Plot.text(cross, {
+      Plot.text(labelled(cross), {
         x: "p",
         y: "value",
         text: (d) => `crossover ≈ ${ordinal(Math.round(d.p))}`,

@@ -1,4 +1,4 @@
-import { distributionView, heatmapView, METRICS, ordinal, shareView } from "./charts.js";
+import { distributionView, heatmapView, METRICS, ordinal, outcomeIndex, shareView } from "./charts.js";
 
 const SETTINGS = {
   main: { label: "Main: annual rebalancing, 1-year blocks, fitted spread", file: "chart.json" },
@@ -15,7 +15,8 @@ const SETTINGS = {
 
 const state = { letf: "3", percentile: 5, horizon: 30, mix: 0.25, metric: "terminal_wealth", setting: "main" };
 const cache = new Map();
-let current = null; // loaded data for state.setting
+let current = null; // data currently shown
+let shownSetting = "main"; // setting whose data is in `current`
 
 const $ = (sel) => document.querySelector(sel);
 const pct = (v, digits = 0) => `${(v * 100).toFixed(digits)}%`;
@@ -57,10 +58,15 @@ function load(setting) {
     const file = SETTINGS[setting].file || `chart_${setting}.json`;
     cache.set(
       setting,
-      fetch(`data/${file}`).then((r) => {
-        if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`);
-        return r.json();
-      }),
+      fetch(`data/${file}`)
+        .then((r) => {
+          if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`);
+          return r.json();
+        })
+        .catch((err) => {
+          cache.delete(setting); // let the next selection retry
+          throw err;
+        }),
     );
   }
   return cache.get(setting);
@@ -117,10 +123,12 @@ function render() {
   const m = METRICS[state.metric];
 
   // View 1
-  const shareRows = current.weights.map((w, j) => ({ w, value: L[state.metric][hi()][j][pi()] }));
+  const k = outcomeIndex(state.metric, state.percentile);
+  const shareRows = current.weights.map((w, j) => ({ w, value: L[state.metric][hi()][j][k] }));
   const v1 = $("#view-share");
   v1.querySelector(".sub").textContent =
-    `${m.label}, at the ${ordinal(state.percentile)} percentile after ${state.horizon} years.`;
+    `${m.label}, ${ordinal(state.percentile)} percentile of outcomes after ${state.horizon} years ` +
+    `(${100 - state.percentile}% of paths do better).`;
   v1.querySelector("figure").replaceChildren(
     shareView({ rows: shareRows, metric: state.metric, wStar, width: v1.clientWidth, tokens: t, letf: letfName }),
   );
@@ -216,6 +224,7 @@ function render() {
   add(` of paths. The ${letfName} part loses 90% or more between rebalances on `);
   add(pct(ruin, 1), true);
   add(" of paths.");
+  describeHeatmap();
 }
 
 // ---------- controls ----------
@@ -234,21 +243,28 @@ function syncControls() {
   }
 }
 
+let loadSeq = 0; // only the latest selection may update the views
+
 async function selectSetting(setting) {
+  const token = ++loadSeq;
   state.setting = setting;
   const views = $("#views");
   views.classList.add("loading");
   views.setAttribute("aria-busy", "true");
   try {
     const data = await load(setting);
-    if (state.setting !== setting) return; // a newer selection won
+    if (token !== loadSeq) return;
     current = data;
+    shownSetting = setting;
     render();
     $("#chart-error").textContent = "";
   } catch (err) {
-    $("#chart-error").textContent = `Could not load data: ${err.message}`;
+    if (token !== loadSeq) return;
+    $("#chart-error").textContent = `Could not load ${SETTINGS[setting].label}: ${err.message}`;
+    state.setting = shownSetting; // the views still show this setting's data
+    syncControls();
   } finally {
-    if (state.setting === setting) {
+    if (token === loadSeq) {
       views.classList.remove("loading");
       views.setAttribute("aria-busy", "false");
     }
@@ -282,6 +298,33 @@ function wireControls() {
   syncControls();
 }
 
+// Keyboard access for the heatmap: arrows move the selected cell.
+function wireHeatmapKeys() {
+  const fig = $("#view-heat figure");
+  fig.tabIndex = 0;
+  fig.setAttribute("role", "group");
+  fig.addEventListener("keydown", (e) => {
+    const moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowDown: [0, -1], ArrowUp: [0, 1] };
+    const mv = moves[e.key];
+    if (!mv) return;
+    e.preventDefault();
+    state.horizon = Math.min(50, Math.max(1, state.horizon + mv[0]));
+    state.percentile = Math.min(99, Math.max(1, state.percentile + mv[1]));
+    syncControls();
+    render();
+  });
+}
+
+function describeHeatmap() {
+  if (!current) return;
+  const w = current.letf[state.letf].w_star[hi()][pi()];
+  $("#view-heat figure").setAttribute(
+    "aria-label",
+    `Best share heatmap. Selected: ${state.horizon} years, ${ordinal(state.percentile)} percentile, ` +
+      `best share ${pct(w)}. Use arrow keys to move.`,
+  );
+}
+
 let resizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
@@ -290,6 +333,7 @@ window.addEventListener("resize", () => {
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 
 wireControls();
+wireHeatmapKeys();
 bindNumbers().catch((err) => console.error(err));
 selectSetting("main");
 

@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from letf import summary
 from letf.paths import RESULTS, ROOT
 
 SUMMARY = ROOT / "site" / "data" / "summary.json"
@@ -36,4 +37,4 @@ def test_numbers_match_results():
     assert s["mix_3x_25_beat"] == pytest.approx(1 - row.p_below_base.iloc[0])
     ws = w_star[(w_star.setting == "main") & (w_star.letf == 2) & (w_star.horizon == 30)]
     assert s["wstar_p5_h30_2x"] == ws[ws.percentile == 5].w_star.iloc[0]
-    assert s["first_pct_positive_h30_2x"] == ws[ws.w_star > 0].percentile.min()
+    assert s["positive_from_h30_2x"] == summary._positive_from(ws)

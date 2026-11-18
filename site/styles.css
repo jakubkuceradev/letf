@@ -11,6 +11,7 @@
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --accent-ink: #1c5cab;
+  --pressed: #256abf;
   --seq: #cde2fb, #b7d3f6, #9ec5f4, #86b6ef, #6da7ec, #5598e7, #3987e5, #2a78d6, #256abf, #1c5cab, #184f95, #104281, #0d366b;
 }
 @media (prefers-color-scheme: dark) {
@@ -27,6 +28,7 @@
     --series-1: #3987e5;
     --series-2: #d95926;
     --accent-ink: #86b6ef;
+    --pressed: #1c5cab;
     --seq: #0d366b, #104281, #184f95, #1c5cab, #256abf, #2a78d6, #3987e5, #5598e7, #6da7ec, #86b6ef, #9ec5f4, #b7d3f6, #cde2fb;
   }
 }
@@ -43,6 +45,7 @@
   --series-1: #3987e5;
   --series-2: #d95926;
   --accent-ink: #86b6ef;
+  --pressed: #1c5cab;
   --seq: #0d366b, #104281, #184f95, #1c5cab, #256abf, #2a78d6, #3987e5, #5598e7, #6da7ec, #86b6ef, #9ec5f4, #b7d3f6, #cde2fb;
 }
 
@@ -119,7 +122,7 @@ a { color: var(--accent-ink); }
   padding: 0.25rem 0.75rem;
   cursor: pointer;
 }
-.segmented button[aria-pressed="true"] { background: var(--series-1); color: #fff; }
+.segmented button[aria-pressed="true"] { background: var(--pressed); color: #fff; }
 .readout {
   font-size: 0.95rem;
   background: var(--page);
@@ -137,6 +140,7 @@ a { color: var(--accent-ink); }
 .view h4 { margin: 0; font-size: 0.95rem; }
 .view .sub { margin: 0 0 0.5rem; color: var(--text-secondary); font-size: 0.82rem; }
 .view figure { margin: 0; }
+.view figure:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 4px; border-radius: 4px; }
 .view svg { max-width: 100%; height: auto; overflow: visible; }
 .legend { display: flex; gap: 1rem; font-size: 0.82rem; color: var(--text-secondary); margin: 0.25rem 0; flex-wrap: wrap; }
 .legend .key { display: inline-block; width: 16px; height: 2px; vertical-align: middle; margin-right: 0.35rem; }
