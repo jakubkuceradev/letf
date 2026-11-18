@@ -27,6 +27,18 @@ def data_report(checks: dict, fund_info: dict) -> str:
             f"{checks['tr_check_diff_pp']:+.3f} pp ({'pass' if checks['tr_check_pass'] else 'FAIL'}, "
             "limit 0.25 pp)."
         ),
+        (
+            "- Official total return days replaced as bad prints (price return plus the month's median "
+            f"dividend gap): {', '.join(checks['tr_repaired_days']) or 'none'}."
+        ),
+        (
+            "- CPI months missing on FRED, interpolated geometrically from neighbouring months: "
+            f"{', '.join(checks['cpi_missing_months']) or 'none'}."
+        ),
+        (
+            "- Federal funds rate calendar days missing (filled with the previous day's rate): "
+            f"{', '.join(checks['dff_missing_days']) or 'none'}."
+        ),
         "",
         "## Fund return sources",
         "",
@@ -75,12 +87,13 @@ def main() -> None:
     wstar, cross = results.derive(grid)
     wstar.to_parquet(RESULTS / "w_star.parquet")
     cross.to_parquet(RESULTS / "crossovers.parquet")
-    size = results.write_chart_json(grid, RESULTS / "chart.json")
+    sizes = results.write_chart_json(grid, RESULTS)
     t_sim = time.perf_counter()
 
     print(
         f"data {t_data - t0:.1f}s, costs {t_costs - t_data:.1f}s, simulation {t_sim - t_costs:.1f}s, "
-        f"total {t_sim - t0:.1f}s; chart.json {size / 1e6:.2f} MB"
+        f"total {t_sim - t0:.1f}s; chart.json {sizes['chart.json'] / 1e6:.2f} MB, "
+        f"largest export {max(sizes.values()) / 1e6:.2f} MB"
     )
     print(
         wstar[

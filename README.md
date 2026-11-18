@@ -15,7 +15,7 @@ The headline result is the LETF allocation that maximizes the 5th percentile of 
 LETFs reset their leverage every trading day, so the analysis uses daily data throughout:
 
 - **Index:** the daily S&P 500 price index from 4 March 1957.
-- **Dividends:** Shiller's monthly dividend yield, spread evenly over each month's trading days, until 1988. From 1988 the official S&P 500 total return index replaces the reconstruction.
+- **Dividends:** Shiller's monthly dividends, spread evenly over each month's trading days, until 1988. From 1988 the official S&P 500 total return index replaces the reconstruction.
 - **Financing rate:** the daily effective federal funds rate (FRED series [`DFF`](https://fred.stlouisfed.org/series/DFF)), the closest long-running match to the overnight rate LETFs pay on their swaps. It accrues over calendar days, so a Monday return carries three days of financing.
 - **Inflation:** the monthly US CPI for all urban consumers (FRED series [`CPIAUCNS`](https://fred.stlouisfed.org/series/CPIAUCNS)), interpolated geometrically to daily values. Every return is deflated by it.
 

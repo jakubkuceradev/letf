@@ -23,6 +23,7 @@ CALIBRATION_START = {"SPXL": pd.Timestamp("2012-06-29")}
 NEAR_ZERO = (pd.Timestamp("2009-01-01"), pd.Timestamp("2015-12-31"))
 REBUILD_SOURCE = {2: "SSO", 3: "UPRO"}
 NW_LAGS = {"M": 3, "W": 8}
+STALE_MOVE = 0.005  # index move that a fund reporting exactly 0% cannot have missed
 OOS_TOLERANCE = 0.005  # annualized tracking difference
 ROLLING_MONTHS = 24
 
@@ -68,19 +69,29 @@ def _frame(ticker: str, fund_ret: pd.Series, market: pd.DataFrame, fees: pd.Data
     er = daily_expense_ratio(ticker, df.index, fees)
     df["er"] = er
     df["y"] = df.r_fund - lev * df.sp_tr + df.n_days * er / 365.0
+    # A stale price (0% while the index moved) is caught up on the next day. Assign each
+    # stale day to the period of the next fresh day so the pair is never split.
+    df["stale"] = (df.r_fund == 0.0) & (df.sp_tr.abs() > STALE_MOVE)
+    anchor = pd.Series(df.index, index=df.index).where(~df.stale)
+    df["anchor"] = anchor.bfill().fillna(df.index[-1])
     return df
 
 
+def _periods(df: pd.DataFrame, freq: str) -> pd.PeriodIndex:
+    return pd.PeriodIndex(df.anchor.dt.to_period(freq))
+
+
 def _fit(df: pd.DataFrame, freq: str) -> Fit:
-    g = df[["y", "rf", "n_days"]].groupby(df.index.to_period(freq)).sum()
+    g = df[["y", "rf", "n_days"]].groupby(_periods(df, freq)).sum()
     g = g[g.n_days > 0]
     model = sm.OLS(g.y, g[["rf", "n_days"]]).fit(cov_type="HAC", cov_kwds={"maxlags": NW_LAGS[freq]})
+    centered_r2 = 1.0 - model.ssr / model.centered_tss
     return Fit(
         k=-model.params["rf"],
         s_daily=-model.params["n_days"],
         k_se=model.bse["rf"],
         s_se=model.bse["n_days"],
-        r2=model.rsquared,
+        r2=centered_r2,
         n_periods=len(g),
     )
 
@@ -95,7 +106,7 @@ def _annualized(r: pd.Series) -> float:
 
 def _rolling_s(df: pd.DataFrame, k: float) -> pd.Series:
     """Spread per calendar day on rolling 24-month windows with k held at the full-sample fit."""
-    g = df[["y", "rf", "n_days"]].groupby(df.index.to_period("M")).sum()
+    g = df[["y", "rf", "n_days"]].groupby(_periods(df, "M")).sum()
     resid = g.y + k * g.rf  # = -s * n_days + noise
     num = resid.rolling(ROLLING_MONTHS).sum()
     den = g.n_days.rolling(ROLLING_MONTHS).sum()
@@ -112,9 +123,9 @@ def fit_fund(ticker: str, fund_ret: pd.Series, market: pd.DataFrame, fees: pd.Da
     zero_fit = _fit(zero, "M") if len(zero) > 250 else None
     zero_drag = float(-zero.y.sum() / zero.n_days.sum() * 365.0) if len(zero) else None
 
-    months = df.index.to_period("M").unique()
-    split = months[len(months) // 2]
-    first, second = df[df.index.to_period("M") < split], df[df.index.to_period("M") >= split]
+    month = _periods(df, "M")
+    split = month.unique()[len(month.unique()) // 2]
+    first, second = df[month < split], df[month >= split]
     oos_fit = _fit(first, "M")
     pred = _predict(second, lev, oos_fit, second.er)
     oos_td = _annualized(second.r_fund) - _annualized(pred)
@@ -140,6 +151,7 @@ def fit_fund(ticker: str, fund_ret: pd.Series, market: pd.DataFrame, fees: pd.Da
         "rolling_s_max": float(rolling.max()) if len(rolling) else None,
         "latest_er": float(df.er.iloc[-1]),
         "days_abs_y_over_3pct": int(big),
+        "stale_days": int(df.stale.sum()),
     }
 
 
@@ -176,11 +188,16 @@ def report(fits: dict, params: dict) -> str:
     lines = ["# Cost model fit", ""]
     lines.append(
         "Monthly sums of daily tracking differences (expense ratio added back), "
-        "regressed on accrued financing and calendar days; Newey-West standard errors."
+        "regressed on accrued financing and calendar days; Newey-West standard errors. "
+        "A stale fund price (exactly 0% while the index moved more than 0.5%) is assigned to the "
+        "period of the next day, which catches it up. R² is centered."
     )
     lines += [
         "",
-        "| Fund | L | Window | k (se) | k − (L−1) t | s %/yr (se) | R² | Weekly k | Weekly s %/yr | OOS TD pp/yr | OOS |",
+        (
+            "| Fund | L | Window | k (se) | k − (L−1) t | s %/yr (se) | centered R² | Weekly k | Weekly s %/yr | "
+            "OOS TD pp/yr | OOS |"
+        ),
         "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for t, f in fits.items():
@@ -201,11 +218,14 @@ def report(fits: dict, params: dict) -> str:
                 f"{100 * f['near_zero_annual_drag_ex_er']:.2f} |"
             )
     lines += ["", "## Rolling 24-month spread (k fixed at full-sample fit)", ""]
-    lines += ["| Fund | min %/yr | max %/yr | days with abs(tracking diff) > 3% |", "|---|---|---|---|"]
+    lines += [
+        "| Fund | min %/yr | max %/yr | days with abs(tracking diff) > 3% | stale prices merged into next day |",
+        "|---|---|---|---|---|",
+    ]
     for t, f in fits.items():
         lines.append(
             f"| {t} | {100 * f['rolling_s_min']:.2f} | {100 * f['rolling_s_max']:.2f} | "
-            f"{f['days_abs_y_over_3pct']} |"
+            f"{f['days_abs_y_over_3pct']} | {f['stale_days']} |"
         )
     lines += ["", "## Rebuild parameters", ""]
     for lev, p in params.items():

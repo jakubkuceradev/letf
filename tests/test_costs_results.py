@@ -36,7 +36,7 @@ def test_fit_recovers_known_costs():
     market = pd.DataFrame({"sp_tr": rng.normal(0.0004, 0.01, 4000), "rf": rf, "n_days": n_days}, index=dates)
     er = 0.009
     s = 0.005
-    df = market.assign(er=er)
+    df = market.assign(er=er, anchor=market.index)
     df["y"] = -1.0 * df.rf - df.n_days * s / 365 + rng.normal(0, 1e-5, 4000)
     fit = costs._fit(df, "M")
     assert fit.k == pytest.approx(1.0, abs=0.02)
@@ -52,3 +52,15 @@ def test_crossovers_interpolate_and_report_all():
     xs = results.crossovers(mix, base)
     assert len(xs) == 2
     assert 20 < xs[0] < 21 and 60 < xs[1] < 61
+
+
+def test_stale_day_joins_the_period_of_its_catch_up_day():
+    dates = pd.to_datetime(["2021-01-28", "2021-01-29", "2021-02-01", "2021-02-02"])
+    market = pd.DataFrame(
+        {"sp_tr": [0.001, -0.02, 0.01, 0.0], "rf": [0.0001] * 4, "n_days": [1.0, 1.0, 3.0, 1.0]}, index=dates
+    )
+    fund = pd.Series([0.002, 0.0, -0.02, 0.0], index=dates)  # 2021-01-29 stale, caught up on 02-01
+    fees = _fees().assign(ticker="SSO")
+    df = costs._frame("SSO", fund, market, fees)
+    assert df.stale.tolist() == [False, True, False, False]
+    assert list(costs._periods(df, "M").astype(str)) == ["2021-01", "2021-02", "2021-02", "2021-02"]

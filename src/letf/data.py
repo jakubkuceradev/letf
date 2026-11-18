@@ -56,6 +56,32 @@ def _accrued(calendar_rate: pd.Series, dates: pd.DatetimeIndex) -> np.ndarray:
     return np.diff(before, prepend=np.nan)
 
 
+TR_GLITCH = 0.002  # daily gap between total and price return no dividend explains
+
+
+def _repair_total_return(official: pd.Series, price_ret: pd.Series) -> tuple[pd.Series, list]:
+    """Replace bad prints in the official total return index.
+
+    A bad print shows up as two consecutive days whose total-minus-price gap exceeds
+    ``TR_GLITCH`` with opposite signs. Those days get the price return plus the month's
+    median gap.
+    """
+    gap = official - price_ret
+    big = gap.abs() > TR_GLITCH
+    flips_next = big.shift(-1, fill_value=False) & (np.sign(gap) != np.sign(gap.shift(-1)))
+    flips_prev = big.shift(1, fill_value=False) & (np.sign(gap) != np.sign(gap.shift(1)))
+    bad = big & (flips_next | flips_prev)
+    month = gap.index.to_period("M")
+    typical = gap.where(~bad).groupby(month).transform("median")
+    repaired = official.where(~bad, price_ret + typical)
+    return repaired, [str(d.date()) for d in gap.index[bad]]
+
+
+def _missing(series: pd.Series, freq: str, start, end) -> list[str]:
+    expected = pd.date_range(start, end, freq=freq)
+    return [str(d.date()) for d in expected.difference(series.index)]
+
+
 def build_market(refresh: bool = False) -> tuple[pd.DataFrame, dict]:
     """Daily market frame and a dict of data checks."""
     gspc = sources.yahoo("^GSPC", refresh)["Close"].astype(float)
@@ -71,14 +97,15 @@ def build_market(refresh: bool = False) -> tuple[pd.DataFrame, dict]:
     price_ret = gspc.pct_change()
     div_ret = _dividend_return(gspc, shiller)
     recon = price_ret + div_ret
-    official = tr.pct_change().reindex(dates)
+    official, tr_repaired = _repair_total_return(tr.pct_change().reindex(dates), price_ret)
     sp_tr = recon.where(dates <= TR_START, official)
 
     calendar = pd.date_range(dates[0], dates[-1] + pd.Timedelta(days=1), freq="D")
     dff_daily = dff.reindex(calendar).ffill() / 100.0 / 360.0
     rf = _accrued(dff_daily, dates)
 
-    log_cpi = np.log(cpi.reindex(calendar.union(cpi.index)).interpolate(method="time"))
+    # Geometric interpolation: interpolate log CPI, anchored at the first of each month.
+    log_cpi = np.log(cpi).reindex(calendar.union(cpi.index)).interpolate(method="time")
     log_cpi = log_cpi.reindex(calendar)
     last_cpi = cpi.index[-1]
     log_cpi[calendar > last_cpi] = np.nan
@@ -103,6 +130,10 @@ def build_market(refresh: bool = False) -> tuple[pd.DataFrame, dict]:
     market = market.loc[:end]
 
     checks = _market_checks(recon, official, shiller, market, last_cpi)
+    checks["tr_repaired_days"] = [d for d in tr_repaired if d <= str(end.date())]
+    checks["cpi_missing_months"] = _missing(cpi, "MS", cpi.index[0], last_cpi)
+    checks["cpi_missing_months"] = [d for d in checks["cpi_missing_months"] if d >= str(START.date())]
+    checks["dff_missing_days"] = _missing(dff, "D", START, end)
     return market, checks
 
 

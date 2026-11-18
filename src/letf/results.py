@@ -122,8 +122,15 @@ def chart_json(grid: pd.DataFrame, setting: str) -> dict:
         shape = (len(horizons), len(weights))
         out["weights"] = weights.round(2).tolist()
         out["horizons"] = horizons.tolist()
+        # w* and crossovers come from the exact percentiles; the rounded wealth is for drawing only.
+        best = np.argmax(cube, axis=1)
         out["letf"][str(letf)] = {
             "log_tw_milli": np.round(1000 * np.log(cube)).astype(int).tolist(),
+            "w_star": weights[best].round(2).tolist(),
+            "crossovers": [
+                [[round(x, 2) for x in crossovers(cube[hi, wi], cube[hi, 0])] for wi in range(len(weights))]
+                for hi in range(len(horizons))
+            ],
             "p_below_base": np.round(g.p_below_base.to_numpy().reshape(shape), 4).tolist(),
             "p_below_start": np.round(g.p_below_start.to_numpy().reshape(shape), 4).tolist(),
             "mean_log": np.round(g.mean_log.to_numpy().reshape(shape), 5).tolist(),
@@ -132,7 +139,12 @@ def chart_json(grid: pd.DataFrame, setting: str) -> dict:
     return out
 
 
-def write_chart_json(grid: pd.DataFrame, path) -> int:
-    text = json.dumps(chart_json(grid, "main"), separators=(",", ":"))
-    path.write_text(text)
-    return len(text.encode())
+def write_chart_json(grid: pd.DataFrame, directory) -> dict[str, int]:
+    """Write ``chart.json`` for the main settings and ``chart_<setting>.json`` for each other one."""
+    sizes = {}
+    for setting in grid.setting.unique():
+        name = "chart.json" if setting == "main" else f"chart_{setting}.json"
+        text = json.dumps(chart_json(grid, setting), separators=(",", ":"))
+        (directory / name).write_text(text)
+        sizes[name] = len(text.encode())
+    return sizes

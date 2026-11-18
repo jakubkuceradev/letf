@@ -2,7 +2,10 @@
 
 - Sample: 1957-03-04 to 2026-10-01 (17513 trading days).
 - Sample end is set by the last CPI month available: 2026-10-01.
-- Reconstructed total return vs official S&P 500 total return index, 1988-01-05 to 2023-06-30: 10.68% vs 10.74% a year, difference -0.058 pp (pass, limit 0.25 pp).
+- Reconstructed total return vs official S&P 500 total return index, 1988-01-05 to 2023-06-30: 10.68% vs 10.74% a year, difference -0.057 pp (pass, limit 0.25 pp).
+- Official total return days replaced as bad prints (price return plus the month's median dividend gap): 1989-06-22, 1989-06-23, 1990-01-24, 1990-01-25, 2014-12-09, 2014-12-10, 2019-03-12, 2019-03-13, 2019-07-03, 2019-07-05.
+- CPI months missing on FRED, interpolated geometrically from neighbouring months: 2025-10-01.
+- Federal funds rate calendar days missing (filled with the previous day's rate): none.
 
 ## Fund return sources
 
@@ -18,8 +21,8 @@
 |   Date |   reconstructed |   official |   diff_pp |
 |-------:|----------------:|-----------:|----------:|
 |   1988 |          0.1235 |     0.1254 |   -0.193  |
-|   1989 |          0.3143 |     0.3168 |   -0.2546 |
-|   1990 |         -0.0324 |    -0.031  |   -0.1347 |
+|   1989 |          0.3143 |     0.317  |   -0.2722 |
+|   1990 |         -0.0324 |    -0.0313 |   -0.1122 |
 |   1991 |          0.3047 |     0.3047 |    0.0073 |
 |   1992 |          0.0761 |     0.0762 |   -0.0083 |
 |   1993 |          0.1006 |     0.1008 |   -0.0136 |
@@ -43,12 +46,12 @@
 |   2011 |          0.0196 |     0.0211 |   -0.1551 |
 |   2012 |          0.1579 |     0.16   |   -0.2113 |
 |   2013 |          0.3227 |     0.3239 |   -0.122  |
-|   2014 |          0.1358 |     0.1369 |   -0.1112 |
+|   2014 |          0.1358 |     0.1369 |   -0.1128 |
 |   2015 |          0.0131 |     0.0138 |   -0.0757 |
 |   2016 |          0.119  |     0.1196 |   -0.0621 |
 |   2017 |          0.2176 |     0.2183 |   -0.0741 |
 |   2018 |         -0.0446 |    -0.0438 |   -0.0791 |
-|   2019 |          0.314  |     0.3149 |   -0.0911 |
+|   2019 |          0.314  |     0.3144 |   -0.0479 |
 |   2020 |          0.1844 |     0.184  |    0.0391 |
 |   2021 |          0.2865 |     0.2871 |   -0.0509 |
 |   2022 |         -0.1817 |    -0.1811 |   -0.0561 |
