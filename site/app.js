@@ -20,6 +20,7 @@ let shownSetting = "main"; // setting whose data is in `current`
 
 const $ = (sel) => document.querySelector(sel);
 const pct = (v, digits = 0) => `${(v * 100).toFixed(digits)}%`;
+const years = (n) => `${n} ${n === 1 ? "year" : "years"}`;
 
 // ---------- number binding for the article text ----------
 
@@ -127,8 +128,8 @@ function render() {
   const shareRows = current.weights.map((w, j) => ({ w, value: L[state.metric][hi()][j][k] }));
   const v1 = $("#view-share");
   v1.querySelector(".sub").textContent =
-    `${m.label}, ${ordinal(state.percentile)} percentile of outcomes after ${state.horizon} years ` +
-    `(${100 - state.percentile}% of paths do better).`;
+    `${m.label}, ${ordinal(state.percentile)} percentile of outcomes after ${years(state.horizon)} ` +
+    `(at least ${100 - state.percentile}% of paths do this well or better).`;
   v1.querySelector("figure").replaceChildren(
     shareView({ rows: shareRows, metric: state.metric, wStar, width: v1.clientWidth, tokens: t, letf: letfName }),
   );
@@ -149,7 +150,7 @@ function render() {
   const crossings = L.crossovers[hi()][j];
   const v2 = $("#view-dist");
   v2.querySelector(".sub").textContent =
-    `Real terminal wealth after ${state.horizon} years, every percentile. Log scale.`;
+    `Real terminal wealth after ${years(state.horizon)}, every percentile. Log scale.`;
   v2.querySelector(".legend").replaceChildren(
     ...[
       [t.series2, "100% S&P 500"],
@@ -203,7 +204,7 @@ function render() {
   );
   fillTable(
     v3.querySelector(".scroll"),
-    ["Percentile", `Best share in ${letfName} after ${state.horizon} years`],
+    ["Percentile", `Best share in ${letfName} after ${years(state.horizon)}`],
     current.percentiles.map((p, b) => [ordinal(p), pct(L.w_star[hi()][b])]),
   );
 
@@ -217,7 +218,7 @@ function render() {
     if (strong) node.textContent = text;
     readout.append(node);
   };
-  add(`At the ${ordinal(state.percentile)} percentile after ${state.horizon} years, the best share in ${letfName} is `);
+  add(`At the ${ordinal(state.percentile)} percentile after ${years(state.horizon)}, the best share in ${letfName} is `);
   add(pct(wStar), true);
   add(`. A ${pct(state.mix)} mix ends ahead of 100% S&P 500 on `);
   add(pct(beat), true);
@@ -248,6 +249,7 @@ let loadSeq = 0; // only the latest selection may update the views
 async function selectSetting(setting) {
   const token = ++loadSeq;
   state.setting = setting;
+  $("#retry").hidden = true;
   const views = $("#views");
   views.classList.add("loading");
   views.setAttribute("aria-busy", "true");
@@ -261,8 +263,13 @@ async function selectSetting(setting) {
   } catch (err) {
     if (token !== loadSeq) return;
     $("#chart-error").textContent = `Could not load ${SETTINGS[setting].label}: ${err.message}`;
-    state.setting = shownSetting; // the views still show this setting's data
-    syncControls();
+    const retry = $("#retry");
+    retry.hidden = false;
+    retry.onclick = () => selectSetting(setting);
+    if (current) {
+      state.setting = shownSetting; // the views still show this setting's data
+      syncControls();
+    }
   } finally {
     if (token === loadSeq) {
       views.classList.remove("loading");
@@ -320,7 +327,7 @@ function describeHeatmap() {
   const w = current.letf[state.letf].w_star[hi()][pi()];
   $("#view-heat figure").setAttribute(
     "aria-label",
-    `Best share heatmap. Selected: ${state.horizon} years, ${ordinal(state.percentile)} percentile, ` +
+    `Best share heatmap. Selected: ${years(state.horizon)}, ${ordinal(state.percentile)} percentile, ` +
       `best share ${pct(w)}. Use arrow keys to move.`,
   );
 }

@@ -140,10 +140,14 @@ export function shareView({ rows, metric, wStar, width, tokens, letf }) {
   });
 }
 
-// Label crossovers only when they are at least 8 percentiles apart; the dots mark all of them.
+// Crossovers within 8 percentiles of each other form a cluster; label the last one in each
+// cluster, which is where the curves finally separate. The dots mark all of them.
 function labelled(cross) {
   const out = [];
-  for (const c of cross) if (!out.length || c.p - out[out.length - 1].p >= 8) out.push(c);
+  cross.forEach((c, i) => {
+    const next = cross[i + 1];
+    if (!next || next.p - c.p >= 8) out.push(c);
+  });
   return out;
 }
 
@@ -252,6 +256,6 @@ export function heatmapView({ cells, horizon, percentile, width, tokens, letf, o
     const d = plot.value;
     if (d) onPick(d.h, d.p);
   });
-  svg?.setAttribute("role", "img");
+  svg?.setAttribute("aria-hidden", "true"); // the focusable figure carries the accessible name
   return plot;
 }

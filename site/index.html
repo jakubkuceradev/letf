@@ -26,8 +26,8 @@
     <span class="num pending" data-num="wstar_p5_h30_3x" data-fmt="pct">…</span> in a 3x fund and
     <span class="num pending" data-num="wstar_p5_h30_2x" data-fmt="pct">…</span> in a 2x fund. Across all
     <span class="num pending" data-num="horizon_count" data-fmt="int">…</span> horizons from 1 to 50 years, the
-    5th-percentile answer is zero at <span class="num pending" data-num="p5_zero_horizons_3x" data-fmt="int">…</span>
-    for 3x and <span class="num pending" data-num="p5_zero_horizons_2x" data-fmt="int">…</span> for 2x. At 30 years it
+    5th-percentile answer is zero for <span class="num pending" data-num="p5_zero_horizons_3x" data-fmt="int">…</span>
+    of them with 3x and <span class="num pending" data-num="p5_zero_horizons_2x" data-fmt="int">…</span> with 2x. At 30 years it
     is zero in <span class="num pending" data-num="sens_p5_zero_count_3x" data-fmt="int">…</span> of the
     <span class="num pending" data-num="sens_count" data-fmt="int">…</span> variations of the simulation we tested
     for 3x, and in <span class="num pending" data-num="sens_p5_zero_count_2x" data-fmt="int">…</span> for 2x.</p>
@@ -155,7 +155,7 @@
       </div>
     </div>
     <p class="readout" id="readout" aria-live="polite">Loading results…</p>
-    <p class="error" id="chart-error" role="alert"></p>
+    <p class="error"><span id="chart-error" role="alert"></span> <button type="button" id="retry" hidden>Retry</button></p>
     <div class="views" id="views" aria-busy="true">
       <section class="view" id="view-share">
         <h4>How much to hold in the LETF</h4>
