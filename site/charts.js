@@ -176,16 +176,22 @@ export function distributionView({ rows, crossings, percentile, mixLabel, width,
       Plot.ruleX([percentile], { stroke: tokens.textPrimary, strokeWidth: 1 }),
       Plot.line(long, { x: "p", y: "value", stroke: "series", strokeWidth: 2 }),
       Plot.dot(cross, { x: "p", y: "value", r: 5, fill: tokens.surface, stroke: tokens.textPrimary, strokeWidth: 2 }),
-      Plot.text(labelled(cross), {
-        x: "p",
-        y: "value",
-        text: (d) => `crossover ≈ ${ordinal(Math.round(d.p))}`,
-        dy: -14,
-        textAnchor: "end",
-        dx: -6,
-        fill: tokens.textPrimary,
-        ...halo(tokens),
-      }),
+      // Keep labels inside the plot: right of low crossovers, left of the rest.
+      ...[
+        [(d) => d.p < 35, "start", 8],
+        [(d) => d.p >= 35, "end", -8],
+      ].map(([keep, textAnchor, dx]) =>
+        Plot.text(labelled(cross).filter(keep), {
+          x: "p",
+          y: "value",
+          text: (d) => `crossover ≈ ${ordinal(Math.round(d.p))}`,
+          dy: -14,
+          dx,
+          textAnchor,
+          fill: tokens.textPrimary,
+          ...halo(tokens),
+        }),
+      ),
       Plot.ruleX(rows, Plot.pointerX({ x: "p", stroke: tokens.axis })),
       Plot.tip(
         rows,

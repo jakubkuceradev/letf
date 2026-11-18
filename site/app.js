@@ -129,7 +129,7 @@ function render() {
   const v1 = $("#view-share");
   v1.querySelector(".sub").textContent =
     `${m.label}, ${ordinal(state.percentile)} percentile of outcomes after ${years(state.horizon)} ` +
-    `(at least ${100 - state.percentile}% of paths do this well or better).`;
+    `(${100 - state.percentile}% or more of paths do at least this well).`;
   v1.querySelector("figure").replaceChildren(
     shareView({ rows: shareRows, metric: state.metric, wStar, width: v1.clientWidth, tokens: t, letf: letfName }),
   );
@@ -249,6 +249,7 @@ let loadSeq = 0; // only the latest selection may update the views
 async function selectSetting(setting) {
   const token = ++loadSeq;
   state.setting = setting;
+  syncControls(); // the dropdown always names the setting being loaded or shown
   $("#retry").hidden = true;
   const views = $("#views");
   views.classList.add("loading");
@@ -269,6 +270,8 @@ async function selectSetting(setting) {
     if (current) {
       state.setting = shownSetting; // the views still show this setting's data
       syncControls();
+    } else {
+      $("#readout").textContent = "Results are unavailable until the data loads.";
     }
   } finally {
     if (token === loadSeq) {
