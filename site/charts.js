@@ -58,6 +58,19 @@ export function logTicks(values) {
 }
 
 const PERCENTILE_TICKS = [5, 25, 50, 75, 95];
+const LABEL_ROOM = 130; // px the full crossover label needs, including its offset
+
+function labelPlacements(points, roomRight, roomLeft) {
+  return points.map((d) => {
+    const right = roomRight(d.p);
+    const left = roomLeft(d.p);
+    if (right >= LABEL_ROOM) return { d, textAnchor: "start", dx: 8, short: false };
+    if (left >= LABEL_ROOM) return { d, textAnchor: "end", dx: -8, short: false };
+    return right >= left
+      ? { d, textAnchor: "start", dx: 8, short: true }
+      : { d, textAnchor: "end", dx: -8, short: true };
+  });
+}
 const halo = (tokens) => ({ stroke: tokens.surface, strokeWidth: 4, paintOrder: "stroke" });
 
 function base(width, height, tokens) {
@@ -159,8 +172,12 @@ export function distributionView({ rows, crossings, percentile, mixLabel, width,
     return { p: c, value: v };
   });
   const yTicks = logTicks(rows.flatMap((r) => [r.base, r.mix]));
+  const frame = base(width, 300, tokens);
+  const plotWidth = width - frame.marginLeft - frame.marginRight;
+  const roomRight = (p) => ((99 - p) / 98) * plotWidth;
+  const roomLeft = (p) => ((p - 1) / 98) * plotWidth;
   return Plot.plot({
-    ...base(width, 300, tokens),
+    ...frame,
     x: { label: "Percentile of outcomes →", domain: [1, 99], ticks: PERCENTILE_TICKS },
     y: { label: "↑ Real terminal wealth", type: "log", tickFormat: mult, ticks: yTicks },
     color: { domain: ["100% S&P 500", mixLabel], range: [tokens.series2, tokens.series1] },
@@ -169,15 +186,13 @@ export function distributionView({ rows, crossings, percentile, mixLabel, width,
       Plot.ruleX([percentile], { stroke: tokens.textPrimary, strokeWidth: 1 }),
       Plot.line(long, { x: "p", y: "value", stroke: "series", strokeWidth: 2 }),
       Plot.dot(cross, { x: "p", y: "value", r: 5, fill: tokens.surface, stroke: tokens.textPrimary, strokeWidth: 2 }),
-      // Keep the label inside the plot: right of a low crossover, left of a high one.
-      ...[
-        [(d) => d.p < 35, "start", 8],
-        [(d) => d.p >= 35, "end", -8],
-      ].map(([keep, textAnchor, dx]) =>
-        Plot.text(labelled(cross).filter(keep), {
+      // Place the label where it fits inside the plot: right of its point, else left, else a
+      // short form on whichever side has more room. It never runs into the y-axis labels.
+      ...labelPlacements(labelled(cross), roomRight, roomLeft).map(({ d, textAnchor, dx, short }) =>
+        Plot.text([d], {
           x: "p",
           y: "value",
-          text: (d) => `crossover ≈ ${ordinal(Math.round(d.p))}`,
+          text: (d) => (short ? "" : "crossover ") + `≈ ${ordinal(Math.round(d.p))}`,
           dy: -14,
           dx,
           textAnchor,
