@@ -84,16 +84,22 @@ def tw_cube(grid: pd.DataFrame, setting: str, letf: int) -> tuple[np.ndarray, np
 
 
 def crossovers(mix: np.ndarray, base: np.ndarray) -> list[float]:
-    """Percentiles where mix - base changes sign, linearly interpolated."""
+    """Percentiles where mix - base changes sign.
+
+    Exact ties are not crossovers by themselves. Between adjacent nonzero differences of
+    opposite sign the crossing is interpolated linearly; across a run of exact ties it sits
+    in the middle of the run. Identical curves have no crossovers.
+    """
     d = mix - base
     out = []
-    for i in range(len(d) - 1):
-        if d[i] == 0:
-            out.append(float(PERCENTILES[i]))
-        elif d[i] * d[i + 1] < 0:
-            out.append(float(PERCENTILES[i] + d[i] / (d[i] - d[i + 1])))
-    if d[-1] == 0:
-        out.append(float(PERCENTILES[-1]))
+    last = None  # index of the last nonzero difference
+    for i in np.flatnonzero(d != 0):
+        if last is not None and np.sign(d[i]) != np.sign(d[last]):
+            if i == last + 1:
+                out.append(float(PERCENTILES[last] + d[last] / (d[last] - d[i])))
+            else:
+                out.append(float((PERCENTILES[last + 1] + PERCENTILES[i - 1]) / 2))
+        last = i
     return out
 
 

@@ -2,8 +2,8 @@
 
 - Sample: 1957-03-04 to 2026-10-01 (17513 trading days).
 - Sample end is set by the last CPI month available: 2026-10-01.
-- Reconstructed total return vs official S&P 500 total return index, 1988-01-05 to 2023-06-30: 10.68% vs 10.74% a year, difference -0.057 pp (pass, limit 0.25 pp).
-- Official total return days replaced as bad prints (price return plus the month's median dividend gap): 1989-06-22, 1989-06-23, 1990-01-24, 1990-01-25, 2014-12-09, 2014-12-10, 2019-03-12, 2019-03-13, 2019-07-03, 2019-07-05.
+- Reconstructed total return vs official S&P 500 total return index, 1988-01-05 to 2023-06-30: 10.68% vs 10.74% a year, difference -0.056 pp (pass, limit 0.25 pp).
+- Official total return days replaced as bad prints (price return plus the month's median dividend gap): 1988-03-01, 1988-03-02, 1989-06-22, 1989-06-23, 1990-01-24, 1990-01-25, 2014-12-09, 2014-12-10, 2019-03-12, 2019-03-13, 2019-07-03, 2019-07-05.
 - CPI months missing on FRED, interpolated geometrically from neighbouring months: 2025-10-01.
 - Federal funds rate calendar days missing (filled with the previous day's rate): none.
 
@@ -20,7 +20,7 @@
 
 |   Date |   reconstructed |   official |   diff_pp |
 |-------:|----------------:|-----------:|----------:|
-|   1988 |          0.1235 |     0.1254 |   -0.193  |
+|   1988 |          0.1235 |     0.125  |   -0.1575 |
 |   1989 |          0.3143 |     0.317  |   -0.2722 |
 |   1990 |         -0.0324 |    -0.0313 |   -0.1122 |
 |   1991 |          0.3047 |     0.3047 |    0.0073 |

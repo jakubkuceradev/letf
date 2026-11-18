@@ -64,3 +64,15 @@ def test_stale_day_joins_the_period_of_its_catch_up_day():
     df = costs._frame("SSO", fund, market, fees)
     assert df.stale.tolist() == [False, True, False, False]
     assert list(costs._periods(df, "M").astype(str)) == ["2021-01", "2021-02", "2021-02", "2021-02"]
+
+
+def test_crossovers_ignore_ties_without_sign_change():
+    base = np.ones(99)
+    assert results.crossovers(base.copy(), base) == []  # identical curves
+    touch = np.full(99, 0.9)
+    touch[40] = 1.0  # touches the baseline but never crosses
+    assert results.crossovers(touch, base) == []
+    tie_run = np.full(99, 0.9)
+    tie_run[30:35] = 1.0
+    tie_run[35:] = 1.1
+    assert results.crossovers(tie_run, base) == [33.0]  # middle of percentiles 31-35

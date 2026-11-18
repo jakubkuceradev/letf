@@ -53,7 +53,7 @@ class PathStats:
     wealth: np.ndarray  # (paths, n_w, years) real terminal wealth
     max_drawdown: np.ndarray  # (paths, n_w, years) worst peak-to-trough fall so far, as a fraction
     underwater_years: np.ndarray  # (paths, n_w, years) longest time below a previous peak, years
-    letf_ruin: np.ndarray  # (paths, years) pure LETF holding fell to 10% of start at any month
+    letf_ruin: np.ndarray  # (paths, years) LETF sleeve fell to 10% of its last rebalanced value, any month
 
 
 def simulate(
@@ -86,7 +86,7 @@ def simulate(
         mdd = np.zeros_like(let_val)
         uw = np.zeros_like(let_val)
         uw_max = np.zeros_like(let_val)
-        pure = np.ones(m)
+        sleeve = np.ones(m)  # LETF sleeve relative to its value at the last rebalance
         ruined = np.zeros(m, dtype=bool)
         snaps = {k: [] for k in out}
 
@@ -99,11 +99,12 @@ def simulate(
             below = wealth < peak
             uw = np.where(below, uw + 1, 0)
             np.maximum(uw_max, uw, out=uw_max)
-            pure *= gl[:, t]
-            ruined |= pure <= 0.1
+            sleeve *= gl[:, t]
+            ruined |= sleeve <= 0.1
             if cfg.rebalance_steps and (t + 1) % cfg.rebalance_steps == 0:
                 let_val = w * wealth
                 idx_val = wealth - let_val
+                sleeve[:] = 1.0
             if (t + 1) % YEAR_STEPS == 0:
                 snaps["wealth"].append(wealth.copy())
                 snaps["mdd"].append(mdd.copy())

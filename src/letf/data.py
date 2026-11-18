@@ -62,15 +62,17 @@ TR_GLITCH = 0.002  # daily gap between total and price return no dividend explai
 def _repair_total_return(official: pd.Series, price_ret: pd.Series) -> tuple[pd.Series, list]:
     """Replace bad prints in the official total return index.
 
-    A bad print shows up as two consecutive days whose total-minus-price gap exceeds
-    ``TR_GLITCH`` with opposite signs. Those days get the price return plus the month's
+    A bad print shows up as two consecutive days whose total-minus-price gaps have
+    opposite signs, one above ``TR_GLITCH`` and the other above half of it. Those days get the price return plus the month's
     median gap.
     """
     gap = official - price_ret
     big = gap.abs() > TR_GLITCH
-    flips_next = big.shift(-1, fill_value=False) & (np.sign(gap) != np.sign(gap.shift(-1)))
-    flips_prev = big.shift(1, fill_value=False) & (np.sign(gap) != np.sign(gap.shift(1)))
-    bad = big & (flips_next | flips_prev)
+    half = gap.abs() > TR_GLITCH / 2
+    nxt = lambda x: x.shift(-1, fill_value=False)
+    opposite = np.sign(gap) != np.sign(gap.shift(-1))
+    pair_starts = opposite & ((big & nxt(half)) | (half & nxt(big)))
+    bad = pair_starts | pair_starts.shift(1, fill_value=False)
     month = gap.index.to_period("M")
     typical = gap.where(~bad).groupby(month).transform("median")
     repaired = official.where(~bad, price_ret + typical)

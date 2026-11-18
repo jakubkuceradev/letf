@@ -72,3 +72,18 @@ def test_reproducible():
     b = sim.simulate(sp, letf, infl, n_days, cfg)
     np.testing.assert_array_equal(a.wealth, b.wealth)
     np.testing.assert_array_equal(a.max_drawdown, b.max_drawdown)
+
+
+def test_sleeve_ruin_resets_at_rebalance():
+    # One-year sample in which the LETF halves on four days spaced one step apart.
+    # A one-year path covers the whole circular sample, so it meets all four halvings in
+    # four consecutive steps; at most three can fall between two quarterly rebalances.
+    n = sim.STEP * sim.YEAR_STEPS
+    letf = np.zeros(n)
+    letf[[0, sim.STEP, 2 * sim.STEP, 3 * sim.STEP]] = -0.5
+    zeros, ones = np.zeros(n), np.ones(n)
+    base = {"years": 1, "n_paths": 20, "chunk": 20, "block_steps": 12, "weights": (0.5,)}
+    quarterly = sim.simulate(zeros, letf, zeros, ones, sim.SimConfig(rebalance_steps=3, **base))
+    never = sim.simulate(zeros, letf, zeros, ones, sim.SimConfig(rebalance_steps=None, **base))
+    assert never.letf_ruin[:, -1].all()  # 0.5^4 = 6.25% of the start
+    assert not quarterly.letf_ruin[:, -1].any()  # at most 0.5^3 = 12.5% between rebalances
