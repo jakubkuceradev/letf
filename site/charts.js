@@ -140,16 +140,9 @@ export function shareView({ rows, metric, wStar, width, tokens, letf }) {
   });
 }
 
-// Crossovers within 8 percentiles of each other form a cluster; label the last one in each
-// cluster, which is where the curves finally separate. The dots mark all of them.
-function labelled(cross) {
-  const out = [];
-  cross.forEach((c, i) => {
-    const next = cross[i + 1];
-    if (!next || next.p - c.p >= 8) out.push(c);
-  });
-  return out;
-}
+// Label only the last crossover, beyond which the two curves stay apart. Every crossover still
+// gets a dot; labelling one avoids labels colliding or pointing at each other's dots.
+const labelled = (cross) => cross.slice(-1);
 
 // View 2: terminal wealth across percentiles for the baseline and the selected mix.
 export function distributionView({ rows, crossings, percentile, mixLabel, width, tokens }) {
@@ -176,7 +169,7 @@ export function distributionView({ rows, crossings, percentile, mixLabel, width,
       Plot.ruleX([percentile], { stroke: tokens.textPrimary, strokeWidth: 1 }),
       Plot.line(long, { x: "p", y: "value", stroke: "series", strokeWidth: 2 }),
       Plot.dot(cross, { x: "p", y: "value", r: 5, fill: tokens.surface, stroke: tokens.textPrimary, strokeWidth: 2 }),
-      // Keep labels inside the plot: right of low crossovers, left of the rest.
+      // Keep the label inside the plot: right of a low crossover, left of a high one.
       ...[
         [(d) => d.p < 35, "start", 8],
         [(d) => d.p >= 35, "end", -8],
